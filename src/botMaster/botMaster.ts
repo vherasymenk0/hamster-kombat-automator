@@ -2,15 +2,15 @@ import { api, ProfileInfo } from '~/services/api'
 import { Account } from '~/services/accountManager'
 import { config } from '~/config'
 import { logger, sleep, time } from '~/utils'
-import { buildClientParams, getRandomRangeNumber } from '~/helpers'
+import { buildClientParams, getCachedTgWebData, getRandomRangeNumber } from '~/helpers'
 import { BotMasterState } from './botMaster.interface'
 import Axios from '~/services/axios'
 import { StringSession } from 'telegram/sessions'
 import { Api, TelegramClient } from 'telegram'
 import { FloodWaitError } from 'telegram/errors'
+import { cacheStore } from '~/services/cacheStore'
+import { ONE_DAY_TIMESTAMP, ONE_HOUR_TIMESTAMP } from '~/constants'
 
-const oneHour = 3600
-const oneDay = 24 * 60 * 60
 const dailyTaskId = 'streak_days'
 const {
   taps_count_range,
@@ -53,6 +53,9 @@ export class BotMaster {
     const { userName, origin } = config.info
     const { api_id, api_hash } = config.settings
 
+    const cachedWebData = getCachedTgWebData(this.name)
+    if (cachedWebData) return cachedWebData
+
     const params = await buildClientParams(this.proxyString, this.name)
     const stringSession = new StringSession(this.session)
     const client = new TelegramClient(stringSession, api_id, api_hash, params)
@@ -72,6 +75,7 @@ export class BotMaster {
     )
     const authUrl = webview.url
     const data = decodeURIComponent(authUrl.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
+    cacheStore.set({ data, lastUpdateAt: time(), id: this.name })
     await client.destroy()
 
     return data
@@ -226,10 +230,10 @@ export class BotMaster {
           lastCompletedDaily,
         } = this.state
 
-        const isTokenExpired = time() - this.tokenCreatedTime >= oneHour
-        const isDailyTurboReady = time() - turboBoostLastUpdate > oneDay && false // Turbo is not available in the app right now
-        const isDailyEnergyReady = time() - energyBoostLastUpdate > oneHour
-        const isDailyTaskAvailable = time() - lastCompletedDaily > oneDay
+        const isTokenExpired = time() - this.tokenCreatedTime >= ONE_HOUR_TIMESTAMP
+        const isDailyTurboReady = time() - turboBoostLastUpdate > ONE_DAY_TIMESTAMP && false // Turbo is not available in the app right now
+        const isDailyEnergyReady = time() - energyBoostLastUpdate > ONE_HOUR_TIMESTAMP
+        const isDailyTaskAvailable = time() - lastCompletedDaily > ONE_DAY_TIMESTAMP
 
         try {
           if (isTokenExpired) {

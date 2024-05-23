@@ -4,3 +4,4 @@ build/
 .idea/
 .vscode/
 db.json
+web_data_cache.json

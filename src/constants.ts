@@ -1,3 +1,5 @@
+export const ONE_HOUR_TIMESTAMP = 3600
+export const ONE_DAY_TIMESTAMP = 24 * 60 * 60
 export const AUTHOR = `
   _____                                                                    _____ 
  ( ___ )------------------------------------------------------------------( ___ ) 
