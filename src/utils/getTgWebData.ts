@@ -34,7 +34,10 @@ export const getTgWebData = async (session: string, params: TelegramClientParams
       }),
     )
     const authUrl = webview.url
-    return decodeURIComponent(authUrl.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
+    const data = decodeURIComponent(authUrl.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
+    await tgClient.destroy()
+
+    return data
   } catch (error) {
     throw new Error(`getTgWebData() | ${error}`)
   }
