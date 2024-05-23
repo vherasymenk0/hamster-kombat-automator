@@ -8,7 +8,7 @@ export const launchActionPrompt = async (): Promise<'add' | 'bot'> => {
       message: 'Select an action',
       choices: [
         { key: 1, name: 'Add new account', value: 'add' },
-        { key: 2, name: 'Run bot', value: 'bot' },
+        { key: 2, name: 'Run automator', value: 'bot' },
       ],
     },
   ]
