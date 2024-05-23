@@ -1,9 +1,9 @@
 import { api, ProfileInfo } from '~/services/api'
 import { Account } from '~/services/accountManager'
 import { config } from '~/config'
-import { logger, sleep, time } from '~/utils'
-import { getRandomRangeNumber } from '~/helpers'
-import { BotMasterProps, BotMasterState } from './botMaster.interface'
+import { getTgWebData, logger, sleep, time } from '~/utils'
+import { buildClientParams, getRandomRangeNumber } from '~/helpers'
+import { BotMasterState } from './botMaster.interface'
 import Axios from '~/services/axios'
 
 const oneHour = 3600
@@ -19,6 +19,9 @@ const {
 } = config.settings
 
 export class BotMaster {
+  private fingerprint: Account['fingerprint']
+  private proxyString: Account['proxyString']
+  private session: Account['session']
   tokenCreatedTime = 0
   name: Account['name']
   state: BotMasterState = {
@@ -35,14 +38,20 @@ export class BotMaster {
   isStateInit = false
   _: Axios
 
-  constructor(props: BotMasterProps) {
+  constructor(props: Account) {
     this._ = new Axios({ headers: props.agent }, props.proxyString)
     this.name = props.name
+    this.fingerprint = props.fingerprint
+    this.proxyString = props.proxyString
+    this.session = props.session
   }
 
   private updateState(info: ProfileInfo['clickerUser']) {
     const { tasks } = info
-    const lastCompletedDaily = Math.floor(Date.parse(tasks[`${dailyTaskId}`].completedAt) / 1000)
+    const completedTime = tasks?.[`${dailyTaskId}`]?.completedAt
+    const lastCompletedDaily = completedTime
+      ? Math.floor(Date.parse(tasks[`${dailyTaskId}`].completedAt) / 1000)
+      : 0
 
     this.state = {
       availableTaps: info.availableTaps,
@@ -58,8 +67,12 @@ export class BotMaster {
     this.isStateInit = true
   }
 
-  private async auth(tgWebData: string, fingerprint: Account['fingerprint']) {
-    await api.login(this._, tgWebData, fingerprint)
+  private async auth() {
+    const tgClientParams = await buildClientParams(this.proxyString, this.name)
+    await sleep(1)
+    const tgWebData = await getTgWebData(this.session, tgClientParams)
+    await sleep(1)
+    await api.login(this._, tgWebData, this.fingerprint)
     this.tokenCreatedTime = time()
     logger.success('Successfully authenticated', this.name)
   }
@@ -169,7 +182,7 @@ export class BotMaster {
     if (profileInfo) this.updateState(profileInfo)
   }
 
-  async start(tgWebData: string, fingerprint: Account['fingerprint']) {
+  async start() {
     while (true) {
       const {
         turboBoostLastUpdate,
@@ -188,7 +201,7 @@ export class BotMaster {
 
       try {
         if (isTokenExpired) {
-          await this.auth(tgWebData, fingerprint)
+          await this.auth()
           continue
         }
 

@@ -1,26 +1,22 @@
 import { BotMaster } from './botMaster'
 import { config } from '~/config'
-import { getTgWebData, logger, sleep } from '~/utils'
-import { buildClientParams } from '~/helpers'
+import { logger, sleep } from '~/utils'
 import { DB } from '~/services/dbService'
 
-const accounts = DB.getAccounts()
 export const botMasterStarter = async () => {
-  const bots = accounts.map(async ({ name, agent, proxyString, session, fingerprint }) => {
+  const accounts = DB.getAccounts()
+
+  const bots = accounts.map(async (account) => {
     try {
-      if (config.settings.use_proxy && !proxyString) {
-        logger.error("BotMaster running in proxy mode but account doesn't have proxy", name)
+      if (config.settings.use_proxy && !account.proxyString) {
+        logger.error("BotMaster running in proxy mode but account doesn't have proxy", account.name)
         process.exit(1)
       }
 
-      const tgClientParams = await buildClientParams(proxyString, name)
-      await sleep(1)
-      const tgWebData = await getTgWebData(session, tgClientParams)
-
-      const bot = new BotMaster({ name, agent, proxyString })
-      await bot.start(tgWebData, fingerprint)
+      const bot = new BotMaster(account)
+      await bot.start()
     } catch (error) {
-      logger.error(String(error), name)
+      logger.error(String(error), account.name)
       await sleep(3)
       await botMasterStarter()
     }
