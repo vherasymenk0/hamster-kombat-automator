@@ -10,7 +10,7 @@
     "url": "https://github.com/vherasymenk0/Hamster-kombat-automator"
   },
   "scripts": {
-    "dev": "nodemon --watch 'src/**/*.ts' --ext 'ts' --exec 'ts-node' src/index.ts",
+    "dev": "npx nodemon",
     "build": "rimraf ./build && webpack --config webpack.config.js",
     "start": "node build/index.js",
     "type-check": "tsc --project tsconfig.json --pretty --noEmit",
