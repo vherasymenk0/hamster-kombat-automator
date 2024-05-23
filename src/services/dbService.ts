@@ -1,5 +1,6 @@
 import fs from 'fs'
 import { Account } from '~/services/accountManager'
+import { logger } from '~/utils'
 
 class DBService {
   private db: string
@@ -10,7 +11,10 @@ class DBService {
 
   init() {
     const isDBCreated = fs.existsSync(this.db)
-    if (!isDBCreated) this._write([])
+    if (!isDBCreated) {
+      this._write([])
+      logger.success('Database has been successfully initialized')
+    }
   }
 
   saveAccount(account: Account) {

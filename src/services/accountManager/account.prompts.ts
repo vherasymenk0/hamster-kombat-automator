@@ -15,10 +15,16 @@ export const proxyPrompt = async (): Promise<string | null> => {
   const isValid = proxyService.isValidProxy(proxy)
 
   if (!proxy) return null
-  if (isValid) return proxy
+  if (!isValid) {
+    logger.error('Invalid proxy format, try again')
+    return proxyPrompt()
+  }
 
-  logger.error('Invalid proxy format, try again')
-  return proxyPrompt()
+  const prx = proxyService.parse(proxy)
+  const { ip, country, city, timezone } = await proxyService.check(prx)
+  logger.info(`Proxy_info: ${ip} | ${country} | ${city} | ${timezone}`)
+
+  return proxy
 }
 
 export const phonePrompt = async () => {

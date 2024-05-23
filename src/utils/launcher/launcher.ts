@@ -1,10 +1,10 @@
 import { launchActionPrompt } from './launcher.prompts'
-import { addAccount } from '~/services/accountManager'
 import { botMasterStarter } from '~/botMaster'
+import { accountManager } from '~/services/accountManager'
 
 export const launcher = async () => {
   const action = await launchActionPrompt()
 
-  if (action === 'add') addAccount()
-  if (action === 'bot') botMasterStarter()
+  if (action === 'add') await accountManager.add()
+  if (action === 'bot') await botMasterStarter()
 }

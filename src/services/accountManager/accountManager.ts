@@ -71,4 +71,4 @@ class AccountManager {
   }
 }
 
-export const addAccount = () => new AccountManager().add()
+export const accountManager = new AccountManager()
