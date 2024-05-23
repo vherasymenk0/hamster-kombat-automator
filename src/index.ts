@@ -1,11 +1,9 @@
 import { launcher, logger } from '~/utils'
 import { AUTHOR } from '~/constants'
 import { DB } from '~/services/dbService'
-import { cacheStore } from '~/services/cacheStore'
 
 try {
   DB.init()
-  cacheStore.init()
   logger.info(AUTHOR)
   launcher()
 } catch (e) {

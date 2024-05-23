@@ -4,7 +4,7 @@ import { logger } from '~/utils'
 import { DB } from '~/services/dbService'
 
 export const botMasterStarter = async () => {
-  const accounts = DB.getAccounts()
+  const accounts = DB.getAll()
 
   const bots = accounts.map(async (account) => {
     try {

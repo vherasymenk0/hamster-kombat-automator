@@ -17,19 +17,19 @@ class DBService {
     }
   }
 
-  saveAccount(account: Account) {
-    const data = this.getAccounts()
-    const newData = [...data, account]
-    this._write(newData)
+  set(account: Account) {
+    const data = this.getAll()
+    const newData = data.filter(({ name }) => name !== account.name)
+    this._write([...newData, account])
   }
 
-  getAccounts(): Account[] {
+  getAll(): Account[] {
     const jsonData = fs.readFileSync(this.db, 'utf8')
     return JSON.parse(jsonData)
   }
 
-  deleteAccount(name: Account['name']) {
-    const data = this.getAccounts()
+  delete(name: Account['name']) {
+    const data = this.getAll()
     const newData = data.filter((client) => client.name !== name)
     this._write(newData)
   }

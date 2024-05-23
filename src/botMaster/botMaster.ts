@@ -2,14 +2,14 @@ import { api, ProfileInfo } from '~/services/api'
 import { Account } from '~/services/accountManager'
 import { config } from '~/config'
 import { logger, sleep, time } from '~/utils'
-import { buildClientParams, getCachedTgWebData, getRandomRangeNumber } from '~/helpers'
+import { buildClientParams, getRandomRangeNumber, isValidWebData } from '~/helpers'
 import { BotMasterState } from './botMaster.interface'
 import Axios from '~/services/axios'
 import { StringSession } from 'telegram/sessions'
 import { Api, TelegramClient } from 'telegram'
 import { FloodWaitError } from 'telegram/errors'
-import { cacheStore } from '~/services/cacheStore'
 import { ONE_DAY_TIMESTAMP, ONE_HOUR_TIMESTAMP } from '~/constants'
+import { DB } from '~/services/dbService'
 
 const dailyTaskId = 'streak_days'
 const {
@@ -22,11 +22,8 @@ const {
 } = config.settings
 
 export class BotMaster {
-  private fingerprint: Account['fingerprint']
-  private proxyString: Account['proxyString']
-  private session: Account['session']
+  private account: Account
   tokenCreatedTime = 0
-  name: Account['name']
   state: BotMasterState = {
     availableTaps: 0,
     totalCoins: 0,
@@ -43,21 +40,19 @@ export class BotMaster {
 
   constructor(props: Account) {
     this._ = new Axios({ headers: props.agent }, props.proxyString)
-    this.name = props.name
-    this.fingerprint = props.fingerprint
-    this.proxyString = props.proxyString
-    this.session = props.session
+    this.account = props
   }
 
   private async getTgWebData() {
     const { userName, origin } = config.info
     const { api_id, api_hash } = config.settings
+    const { webData, name, proxyString, session } = this.account
 
-    const cachedWebData = getCachedTgWebData(this.name)
+    const cachedWebData = isValidWebData(webData, name)
     if (cachedWebData) return cachedWebData
 
-    const params = await buildClientParams(this.proxyString, this.name)
-    const stringSession = new StringSession(this.session)
+    const params = await buildClientParams(proxyString, name)
+    const stringSession = new StringSession(session)
     const client = new TelegramClient(stringSession, api_id, api_hash, params)
 
     const isValidSession = await client.connect()
@@ -75,12 +70,16 @@ export class BotMaster {
       }),
     )
     const authUrl = webview.url
-    const data = decodeURIComponent(authUrl.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
-    cacheStore.set({ data, lastUpdateAt: time(), id: this.name })
+    const stringData = decodeURIComponent(
+      authUrl.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0],
+    )
+
+    DB.set({ ...this.account, webData: { lastUpdateAt: time(), stringData } })
+    logger.info(`Web data has been successfully cached`, name)
     await sleep(2)
     await client.destroy()
 
-    return data
+    return stringData
   }
 
   private updateState(info: ProfileInfo['clickerUser']) {
@@ -105,16 +104,16 @@ export class BotMaster {
   }
 
   private async auth(tgWebData: string) {
-    await api.login(this._, tgWebData, this.fingerprint)
+    await api.login(this._, tgWebData, this.account.fingerprint)
     this.tokenCreatedTime = time()
-    logger.success('Successfully authenticated', this.name)
+    logger.success('Successfully authenticated', this.account.name)
   }
 
   private async selectExchange() {
     const exchange = 'okx'
     await api.selectExchange(this._, exchange)
 
-    logger.success(`Successfully selected ${exchange} exchange`, this.name)
+    logger.success(`Successfully selected ${exchange} exchange`, this.account.name)
   }
 
   private async completeDailyTask() {
@@ -129,14 +128,14 @@ export class BotMaster {
 
       logger.success(
         `Successfully get daily reward | Days: ${days} | Reward coins: ${reward}`,
-        this.name,
+        this.account.name,
       )
     }
   }
 
   private async applyDailyTurbo() {
     await api.applyBoost(this._, 'BoostMaxTaps')
-    logger.success('Turbo has been successfully applied', this.name)
+    logger.success('Turbo has been successfully applied', this.account.name)
     await sleep(1)
     await this.sendTaps(turbo_taps_count)
   }
@@ -147,7 +146,7 @@ export class BotMaster {
 
     logger.success(
       `Energy has been successfully restored | Energy: ${data.availableTaps}`,
-      this.name,
+      this.account.name,
     )
   }
 
@@ -160,7 +159,7 @@ export class BotMaster {
 
     logger.success(
       `Successfully tapped! (+${tapsCount}) | Balance: ${data.balanceCoins.toFixed(2)}`,
-      this.name,
+      this.account.name,
     )
   }
 
@@ -170,7 +169,10 @@ export class BotMaster {
     this.updateState(data)
 
     const lpe = lastPassiveEarn.toFixed(2)
-    logger.info(`Last passive earn: ${lpe} | Earn every hour: ${earnPassivePerHour}`, this.name)
+    logger.info(
+      `Last passive earn: ${lpe} | Earn every hour: ${earnPassivePerHour}`,
+      this.account.name,
+    )
   }
 
   private async getAvailableUpgrades() {
@@ -207,7 +209,7 @@ export class BotMaster {
 
         logger.success(
           `Upgraded [${id}] to ${level} lvl | +${profitPerHourDelta} | Total per hour ${res.earnPassivePerHour}`,
-          this.name,
+          this.account.name,
         )
         await sleep(4)
       }
@@ -292,21 +294,21 @@ export class BotMaster {
 
               logger.info(
                 `Minimum energy reached: ${availableTaps} | Approximate energy recovery time ${timeInMinutes} minutes`,
-                this.name,
+                this.account.name,
               )
 
               await sleep(sleepTime)
             }
           }
         } catch (e) {
-          logger.error(String(e), this.name)
+          logger.error(String(e), this.account.name)
           await sleep(3)
         }
       }
     } catch (error) {
       if (error instanceof FloodWaitError) {
-        logger.error(String(error), this.name)
-        logger.warn(`Sleep ${error.seconds} seconds`, this.name)
+        logger.error(String(error), this.account.name)
+        logger.warn(`Sleep ${error.seconds} seconds`, this.account.name)
         await sleep(error.seconds)
       }
       await sleep(2)

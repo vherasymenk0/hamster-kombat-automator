@@ -3,16 +3,17 @@
 <div style="">
       <div style="display: flex; align-items: center">
         <img src="https://cdn.iconscout.com/icon/free/png-512/free-buymeacoffee-3521318-2944737.png?f=webp&w=256" width="17" height="17">
-        <span style="padding-left: 10px"><strong>Like my bot? Buy me a coffee. Thanks for your support!</strong></span>
+        <span style="padding-left: 15px"><strong>Like my bot? Buy me a coffee. Thanks for your support!</strong></span>
     </div>
     <div style="display: flex;margin-top: 5px; align-items: center">
         <img src="https://metamask.io/images/metamask-logo.png" width="17" height="17">
-        <span style="padding-left: 10px"><strong>0x251d1EA8113549B6874cF30e32C2030f423BB655</strong></span>
+        <span style="padding-left: 15px"><strong>0x251d1EA8113549B6874cF30e32C2030f423BB655</strong></span>
     </div>
 </div>
 
 
 ### 📜 **Script features**
+- caching telegram web data for 24 hours to avoid flood ban
 - real user agents (android)
 - proxy binding to an account
 - support running on multiple accounts (single-threaded execution in parallel mode)

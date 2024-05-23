@@ -50,7 +50,7 @@ class AccountManager {
     if (isAccountExisted) {
       const action = await existingAccountActionPrompt(name)
       if (action === 'new') return this._createName()
-      DB.deleteAccount(name)
+      DB.delete(name)
       logger.info(`${name} account has been deleted`)
     }
 
@@ -59,14 +59,14 @@ class AccountManager {
 
   private async _save(session: string, proxyString: string | null, name: string): Promise<void> {
     const agent = generateUA()
-    const account: Account = { name, session, proxyString, agent, fingerprint: null }
+    const account: Account = { name, session, proxyString, agent, fingerprint: null, webData: null }
 
-    DB.saveAccount(account)
+    DB.set(account)
     logger.success(`${name} account has been successfully saved`)
   }
 
   private _isExists(name: string) {
-    const clients = DB.getAccounts()
+    const clients = DB.getAll()
     return clients.some((client) => client.name === name)
   }
 }

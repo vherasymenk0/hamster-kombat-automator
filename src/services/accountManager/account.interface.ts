@@ -14,4 +14,8 @@ export interface Account {
       [key: string]: { value: unknown; duration: number } | { error: unknown; duration: number }
     }
   } | null
+  webData: {
+    stringData: string
+    lastUpdateAt: number
+  } | null
 }
