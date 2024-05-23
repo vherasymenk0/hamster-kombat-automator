@@ -64,6 +64,7 @@ export class BotMaster {
     if (!isValidSession) throw new Error('Session is invalid')
 
     const userEntity = await client.getEntity(userName)
+    await sleep(3)
     const webview = await client.invoke(
       new Api.messages.RequestWebView({
         peer: userEntity,
@@ -76,6 +77,7 @@ export class BotMaster {
     const authUrl = webview.url
     const data = decodeURIComponent(authUrl.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
     cacheStore.set({ data, lastUpdateAt: time(), id: this.name })
+    await sleep(2)
     await client.destroy()
 
     return data
