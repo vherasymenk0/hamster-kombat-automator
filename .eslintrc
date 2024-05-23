@@ -1,0 +1,32 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": "./tsconfig.eslint.json"
+  },
+  "plugins": ["@typescript-eslint", "prettier", "import"],
+  "extends": ["airbnb-typescript/base", "prettier"],
+  "settings": {
+    "settings": {
+      "import/resolver": {
+        "typescript": {}
+      }
+    }
+  },
+  "rules": {
+    "import/extensions": "off",
+    "no-console": 0,
+    "@typescript-eslint/lines-between-class-members": 0,
+    "@typescript-eslint/naming-convention": 0,
+    "import/prefer-default-export": 0,
+    "no-alert": 0,
+    "no-plusplus": 0,
+    "radix": 0,
+    "class-methods-use-this": "off",
+    "consistent-return": "off",
+    "no-underscore-dangle": 0,
+    "prettier/prettier": 2,
+    "semi": [ "error", "never" ],
+    "semi-style": ["error", "last"]
+  }
+}
