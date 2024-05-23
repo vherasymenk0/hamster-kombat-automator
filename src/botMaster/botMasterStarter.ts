@@ -1,6 +1,6 @@
 import { BotMaster } from './botMaster'
 import { config } from '~/config'
-import { logger, sleep } from '~/utils'
+import { logger } from '~/utils'
 import { DB } from '~/services/dbService'
 
 export const botMasterStarter = async () => {
@@ -17,8 +17,6 @@ export const botMasterStarter = async () => {
       await bot.start()
     } catch (error) {
       logger.error(String(error), account.name)
-      await sleep(3)
-      await botMasterStarter()
     }
   })
 

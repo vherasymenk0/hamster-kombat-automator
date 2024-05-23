@@ -1,10 +1,13 @@
 import { api, ProfileInfo } from '~/services/api'
 import { Account } from '~/services/accountManager'
 import { config } from '~/config'
-import { getTgWebData, logger, sleep, time } from '~/utils'
+import { logger, sleep, time } from '~/utils'
 import { buildClientParams, getRandomRangeNumber } from '~/helpers'
 import { BotMasterState } from './botMaster.interface'
 import Axios from '~/services/axios'
+import { StringSession } from 'telegram/sessions'
+import { Api, TelegramClient } from 'telegram'
+import { FloodWaitError } from 'telegram/errors'
 
 const oneHour = 3600
 const oneDay = 24 * 60 * 60
@@ -46,6 +49,34 @@ export class BotMaster {
     this.session = props.session
   }
 
+  private async getTgWebData() {
+    const { userName, origin } = config.info
+    const { api_id, api_hash } = config.settings
+
+    const params = await buildClientParams(this.proxyString, this.name)
+    const stringSession = new StringSession(this.session)
+    const client = new TelegramClient(stringSession, api_id, api_hash, params)
+
+    const isValidSession = await client.connect()
+    if (!isValidSession) throw new Error('Session is invalid')
+
+    const userEntity = await client.getEntity(userName)
+    const webview = await client.invoke(
+      new Api.messages.RequestWebView({
+        peer: userEntity,
+        bot: userEntity,
+        platform: 'android',
+        fromBotMenu: false,
+        url: origin,
+      }),
+    )
+    const authUrl = webview.url
+    const data = decodeURIComponent(authUrl.split('tgWebAppData=')[1].split('&tgWebAppVersion')[0])
+    await client.destroy()
+
+    return data
+  }
+
   private updateState(info: ProfileInfo['clickerUser']) {
     const { tasks } = info
     const completedTime = tasks?.[`${dailyTaskId}`]?.completedAt
@@ -58,8 +89,8 @@ export class BotMaster {
       totalCoins: info.totalCoins,
       balanceCoins: info.balanceCoins,
       exchangeId: info.exchangeId,
-      energyBoostLastUpdate: info.boosts.BoostFullAvailableTaps.lastUpgradeAt,
-      turboBoostLastUpdate: info.boosts.BoostMaxTaps.lastUpgradeAt,
+      energyBoostLastUpdate: info.boosts?.BoostFullAvailableTaps?.lastUpgradeAt || 0,
+      turboBoostLastUpdate: info.boosts?.BoostMaxTaps?.lastUpgradeAt || 0,
       maxEnergy: info.maxTaps,
       tapsRecoverPerSec: info.tapsRecoverPerSec,
       lastCompletedDaily,
@@ -67,11 +98,7 @@ export class BotMaster {
     this.isStateInit = true
   }
 
-  private async auth() {
-    const tgClientParams = await buildClientParams(this.proxyString, this.name)
-    await sleep(1)
-    const tgWebData = await getTgWebData(this.session, tgClientParams)
-    await sleep(1)
+  private async auth(tgWebData: string) {
     await api.login(this._, tgWebData, this.fingerprint)
     this.tokenCreatedTime = time()
     logger.success('Successfully authenticated', this.name)
@@ -144,11 +171,12 @@ export class BotMaster {
     const data = await api.getUpgrades(this._)
 
     const availableUpgrades = data
-      .filter(({ isAvailable: isUnlock, isExpired, level }) => {
+      .filter(({ isAvailable: isUnlock, isExpired, level, maxLevel = 999 }) => {
         const isAvailable = isUnlock && !isExpired
-        const isMaxUpgradeLvl = level > max_upgrade_lvl
+        const hasMaxUpgradeLevel = level >= max_upgrade_lvl
+        const isAvailableToUpgrade = maxLevel > level
 
-        return isAvailable && !isMaxUpgradeLvl
+        return isAvailable && !hasMaxUpgradeLevel && isAvailableToUpgrade
       })
       .sort((a, b) => {
         const a_ppr = a.profitPerHourDelta / a.price
@@ -175,7 +203,7 @@ export class BotMaster {
           `Upgraded [${id}] to ${level} lvl | +${profitPerHourDelta} | Total per hour ${res.earnPassivePerHour}`,
           this.name,
         )
-        await sleep(2)
+        await sleep(4)
       }
     }
 
@@ -183,86 +211,100 @@ export class BotMaster {
   }
 
   async start() {
-    while (true) {
-      const {
-        turboBoostLastUpdate,
-        exchangeId,
-        energyBoostLastUpdate,
-        availableTaps,
-        maxEnergy,
-        tapsRecoverPerSec,
-        lastCompletedDaily,
-      } = this.state
+    try {
+      const tgWebData = await this.getTgWebData()
+      await sleep(2)
 
-      const isTokenExpired = time() - this.tokenCreatedTime >= oneHour
-      const isDailyTurboReady = time() - turboBoostLastUpdate > oneDay && false // Turbo is not available in the app right now
-      const isDailyEnergyReady = time() - energyBoostLastUpdate > oneHour
-      const isDailyTaskAvailable = time() - lastCompletedDaily > oneDay
+      while (true) {
+        const {
+          turboBoostLastUpdate,
+          exchangeId,
+          energyBoostLastUpdate,
+          availableTaps,
+          maxEnergy,
+          tapsRecoverPerSec,
+          lastCompletedDaily,
+        } = this.state
 
-      try {
-        if (isTokenExpired) {
-          await this.auth()
-          continue
-        }
+        const isTokenExpired = time() - this.tokenCreatedTime >= oneHour
+        const isDailyTurboReady = time() - turboBoostLastUpdate > oneDay && false // Turbo is not available in the app right now
+        const isDailyEnergyReady = time() - energyBoostLastUpdate > oneHour
+        const isDailyTaskAvailable = time() - lastCompletedDaily > oneDay
 
-        if (!this.isStateInit) {
-          await this.setProfileInfo()
-          await sleep(1)
-          continue
-        }
-
-        if (exchangeId === 'hamster') {
-          await this.selectExchange()
-          await sleep(1)
-          continue
-        }
-
-        if (isDailyTaskAvailable) {
-          await this.completeDailyTask()
-          await sleep(1)
-          continue
-        }
-
-        if (!isDailyTurboReady) {
-          await this.buyAvailableUpgrades()
-          await sleep(2)
-        }
-
-        if (tap_mode) {
-          if (isDailyTurboReady) {
-            await this.applyDailyTurbo()
+        try {
+          if (isTokenExpired) {
+            await this.auth(tgWebData)
             await sleep(2)
             continue
           }
 
-          if (min_energy <= availableTaps) {
-            const [min, max] = sleep_between_taps
-            const sleepTime = getRandomRangeNumber(min, max)
-
-            await this.sendTaps()
-            await sleep(sleepTime)
+          if (!this.isStateInit) {
+            await this.setProfileInfo()
+            await sleep(2)
             continue
           }
 
-          if (isDailyEnergyReady) {
-            await this.applyDailyEnergy()
+          if (exchangeId === 'hamster') {
+            await this.selectExchange()
             await sleep(2)
-          } else {
-            const sleepTime = (maxEnergy - availableTaps) / tapsRecoverPerSec
-            const timeInMinutes = Math.round((maxEnergy - availableTaps) / tapsRecoverPerSec / 60)
-
-            logger.info(
-              `Minimum energy reached: ${availableTaps} | Approximate energy recovery time ${timeInMinutes} minutes`,
-              this.name,
-            )
-
-            await sleep(sleepTime)
+            continue
           }
+
+          if (isDailyTaskAvailable) {
+            await this.completeDailyTask()
+            await sleep(2)
+            continue
+          }
+
+          if (!isDailyTurboReady) {
+            await this.buyAvailableUpgrades()
+            await sleep(2)
+          }
+
+          if (tap_mode) {
+            if (isDailyTurboReady) {
+              await this.applyDailyTurbo()
+              await sleep(2)
+              continue
+            }
+
+            if (min_energy <= availableTaps) {
+              const [min, max] = sleep_between_taps
+              const sleepTime = getRandomRangeNumber(min, max)
+
+              await this.sendTaps()
+              await sleep(sleepTime)
+              continue
+            }
+
+            if (isDailyEnergyReady) {
+              await this.applyDailyEnergy()
+              await sleep(2)
+            } else {
+              const sleepTime = (maxEnergy - availableTaps) / tapsRecoverPerSec
+              const timeInMinutes = Math.round((maxEnergy - availableTaps) / tapsRecoverPerSec / 60)
+
+              logger.info(
+                `Minimum energy reached: ${availableTaps} | Approximate energy recovery time ${timeInMinutes} minutes`,
+                this.name,
+              )
+
+              await sleep(sleepTime)
+            }
+          }
+        } catch (e) {
+          logger.error(String(e), this.name)
+          await sleep(3)
         }
-      } catch (e) {
-        logger.error(String(e), this.name)
-        await sleep(3)
       }
+    } catch (error) {
+      if (error instanceof FloodWaitError) {
+        logger.error(String(error), this.name)
+        logger.warn(`Sleep ${error.seconds} seconds`, this.name)
+        await sleep(error.seconds)
+      }
+      await sleep(2)
+      await this.start()
     }
   }
 }

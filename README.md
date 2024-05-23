@@ -1,12 +1,12 @@
 ![Alt text](/.github/hamster_preview.png)
 
 <div style="">
-    <div style="display: flex; align-items: center">
-        <span>☕</span>
-        <h5 style="padding-left: 10px">Like my bot? Buy me a coffee. Thanks for your support!</h5>
+      <div style="display: flex; align-items: center">
+        <img src="https://cdn.iconscout.com/icon/free/png-512/free-buymeacoffee-3521318-2944737.png?f=webp&w=256" width="17" height="17">
+        <span style="padding-left: 10px"><strong>Like my bot? Buy me a coffee. Thanks for your support!</strong></span>
     </div>
-    <div style="display: flex; margin-top: -15px">
-        <img src="https://metamask.io/images/metamask-logo.png" width="20" height="20">
+    <div style="display: flex;margin-top: 5px; align-items: center">
+        <img src="https://metamask.io/images/metamask-logo.png" width="17" height="17">
         <span style="padding-left: 10px"><strong>0x251d1EA8113549B6874cF30e32C2030f423BB655</strong></span>
     </div>
 </div>

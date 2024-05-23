@@ -28,6 +28,7 @@ interface UpgradeItem {
   condition: UpgradeConditionType | null
   section: string
   level: number
+  maxLevel?: number
   currentProfitPerHour: number
   profitPerHourDelta: number
   isAvailable: boolean
@@ -54,12 +55,12 @@ interface Boosts {
   BoostMaxTaps: {
     id: 'BoostMaxTaps'
     level: number
-    lastUpgradeAt: number
+    lastUpgradeAt?: number
   }
   BoostFullAvailableTaps: {
     id: 'BoostFullAvailableTaps'
     level: number
-    lastUpgradeAt: number
+    lastUpgradeAt?: number
   }
 }
 
