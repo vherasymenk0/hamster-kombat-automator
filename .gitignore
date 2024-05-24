@@ -3,4 +3,4 @@ build/
 .env
 .idea/
 .vscode/
-db.json
+/src/data/db.json

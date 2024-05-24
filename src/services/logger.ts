@@ -1,9 +1,9 @@
 import { createLogger, format, transports } from 'winston'
-import { WinstonColorsType, WinstonColorsTypeLevels } from './logger.interfaces'
+import { WinstonColorsType, WinstonColorsTypeLevels } from '~/interfaces'
 
 class Logger {
-  private levels: Record<WinstonColorsTypeLevels, number>
-  private levelColors: Record<WinstonColorsTypeLevels, WinstonColorsType>
+  private readonly levels: Record<WinstonColorsTypeLevels, number>
+  private readonly levelColors: Record<WinstonColorsTypeLevels, WinstonColorsType>
   private logger
 
   constructor() {
@@ -80,4 +80,4 @@ class Logger {
   }
 }
 
-export const logger = new Logger()
+export const log = new Logger()

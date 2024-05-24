@@ -1,4 +1,4 @@
-export interface Account {
+export interface AccountModel {
   name: string
   session: string
   proxyString: string | null
@@ -18,4 +18,27 @@ export interface Account {
     stringData: string
     lastUpdateAt: number
   } | null
+}
+
+export interface ProxyModel {
+  host: string
+  port: number
+  login?: string
+  password?: string
+}
+
+export interface IpInfoModel {
+  ip: string
+  city: string
+  region: string
+  country: string
+  loc: string
+  org: string
+  postal: string
+  timezone: string
+}
+
+export interface ErrorModel {
+  error_code: string
+  error_message: string
 }

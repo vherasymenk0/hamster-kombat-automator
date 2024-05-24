@@ -1,0 +1,1 @@
+export { runAutomator } from './automatorRunner'

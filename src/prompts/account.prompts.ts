@@ -1,5 +1,5 @@
 import inquirer, { QuestionCollection } from 'inquirer'
-import { PROXY_TEMPLATE } from '~/services/proxyService'
+import { PROXY_TEMPLATE } from '~/constants'
 
 export const proxyPrompt = async (): Promise<string> => {
   const questions: QuestionCollection = [
@@ -70,7 +70,7 @@ export const accountNamePrompt = async (): Promise<string> => {
   return name
 }
 
-export const existingAccountActionPrompt = async (name: string): Promise<'delete' | 'new'> => {
+export const accountActionPrompt = async (name: string): Promise<'delete' | 'new'> => {
   const questions: QuestionCollection = [
     {
       type: 'list',

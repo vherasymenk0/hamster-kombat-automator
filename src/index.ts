@@ -1,11 +1,27 @@
-import { launcher, logger } from '~/utils'
+import { Account, DB, log } from '~/services'
 import { AUTHOR } from '~/constants'
-import { DB } from '~/services/dbService'
+import { runAutomator } from '~/automator'
+import { launchPrompt } from '~/prompts'
+import { LAUNCH_MODE_ENUM } from '~/enums'
+
+const launcher = async () => {
+  const action = await launchPrompt()
+  const { add_account, automator } = LAUNCH_MODE_ENUM
+
+  switch (action) {
+    case add_account:
+      await Account.add()
+      break
+    case automator:
+      await runAutomator()
+      break
+  }
+}
 
 try {
   DB.init()
-  logger.info(AUTHOR)
+  log.info(AUTHOR)
   launcher()
 } catch (e) {
-  logger.error(String(e))
+  log.error(String(e))
 }

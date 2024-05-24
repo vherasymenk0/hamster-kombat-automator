@@ -70,17 +70,12 @@ type CompletedTaskType = Omit<Task, 'id' | 'days' | 'completedAt'> & {
   completedAt: string
 }
 
-export interface ErrorResponse {
-  error_code: string
-  error_message: string
-}
-
-export interface LoginResponse {
+export interface LoginResponseModel {
   authToken: string
   status: string
 }
 
-export interface ProfileInfo {
+export interface ProfileModel {
   clickerUser: {
     id: string
     totalCoins: number
@@ -103,15 +98,15 @@ export interface ProfileInfo {
   }
 }
 
-export interface TasksList {
+export interface TasksListModel {
   tasks: Task[]
 }
 
-export interface CompletedTask extends ProfileInfo {
+export interface CompletedTaskModel extends ProfileModel {
   task: CompletedTaskType
 }
 
-export interface Upgrades {
+export interface UpgradesModel {
   upgradesForBuy: UpgradeItem[]
   sections: UpgradeSection[]
 }

@@ -1,8 +1,8 @@
-import { ProfileInfo } from '~/services/api'
+import { ProfileModel } from './models'
 
-export interface BotMasterState
+export interface AutomatorState
   extends Pick<
-    ProfileInfo['clickerUser'],
+    ProfileModel['clickerUser'],
     'balanceCoins' | 'availableTaps' | 'totalCoins' | 'exchangeId' | 'tapsRecoverPerSec'
   > {
   energyBoostLastUpdate: number

@@ -1,7 +1,6 @@
 import axios, { AxiosRequestConfig, AxiosError } from 'axios'
-import { ErrorResponse } from '~/services/api'
 import axiosRetry from 'axios-retry'
-import { proxyService } from '~/services/proxyService'
+import { ErrorModel } from '~/interfaces'
 
 type Handler = <TData>(url: string, config?: AxiosRequestConfig) => Promise<TData>
 type Props = {
@@ -9,38 +8,17 @@ type Props = {
   proxyString?: string | null
 }
 
-class Axios {
-  private instance
+export class Axios {
+  private readonly instance
 
-  constructor({ config, proxyString }: Props) {
+  constructor(props?: Props) {
     this.instance = axios.create({
+      baseURL: props?.config?.baseURL,
       headers: {
         Accept: '*/*',
-        ...config?.headers,
+        ...props?.config?.headers,
       },
       timeout: 1000 * 15,
-    })
-
-    if (proxyString) {
-      const agent = proxyService.getAgent(proxyString)
-      this.instance.defaults.httpsAgent = agent
-      this.instance.defaults.httpAgent = agent
-    }
-
-    axiosRetry(axios, {
-      retries: 3,
-      retryDelay: (...arg) => axiosRetry.exponentialDelay(...arg, 1000),
-      retryCondition(error) {
-        switch (error?.response?.status) {
-          case 429:
-          case 502:
-          case 503:
-          case 504:
-            return true
-          default:
-            return false
-        }
-      },
     })
 
     this.instance.interceptors.response.use(
@@ -49,7 +27,7 @@ class Axios {
         const isAxiosError = error instanceof AxiosError
         if (!isAxiosError) throw new Error(String(error))
 
-        const errorInfo = error?.response?.data as ErrorResponse
+        const errorInfo = error?.response?.data as ErrorModel
         const isApiError = errorInfo?.error_code && errorInfo?.error_message
 
         if (isApiError)
@@ -63,6 +41,18 @@ class Axios {
         throw new Error(error.message)
       },
     )
+
+    axiosRetry(this.instance, {
+      retries: 3,
+      retryDelay: (...arg) => axiosRetry.exponentialDelay(...arg, 1000),
+      retryCondition(error) {
+        const statusCode = error?.response?.status
+        if (!statusCode) return false
+
+        const retryErrorCodes = [429, 502, 503, 504]
+        return retryErrorCodes.includes(statusCode)
+      },
+    })
   }
 
   async makeRequest(method: string, url: string, options: AxiosRequestConfig = {}) {
@@ -86,5 +76,3 @@ class Axios {
   get: Handler = (url, axConfig) => this.makeRequest('get', url, axConfig)
   post: Handler = (url, axConfig) => this.makeRequest('post', url, axConfig)
 }
-
-export default Axios

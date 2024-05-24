@@ -1,11 +1,17 @@
-import { CompletedTask, LoginResponse, ProfileInfo, TasksList, Upgrades } from './api.interfaces'
-import { apiMap } from './api.constants'
-import { Account } from '~/services/accountManager'
-import Axios from '~/services/axios'
+import { Axios } from '~/services'
+import {
+  CompletedTaskModel,
+  LoginResponseModel,
+  ProfileModel,
+  TasksListModel,
+  UpgradesModel,
+} from './interfaces'
+import { API_MAP } from './constants'
+import { AccountModel } from '~/interfaces'
 import { time } from '~/utils'
 
-class Api {
-  async login(axios: Axios, tgWebData: string, fp: Account['fingerprint']) {
+class ApiService {
+  async login(axios: Axios, tgWebData: string, fp: AccountModel['fingerprint']) {
     try {
       let fingerprint = {}
       axios.setAuthToken()
@@ -19,7 +25,7 @@ class Api {
       }
 
       const dto = { initDataRaw: tgWebData, fingerprint }
-      const { authToken } = await axios.post<LoginResponse>(apiMap.login, {
+      const { authToken } = await axios.post<LoginResponseModel>(API_MAP.login, {
         data: dto,
       })
 
@@ -31,7 +37,7 @@ class Api {
 
   async getProfileInfo(axios: Axios) {
     try {
-      const { clickerUser } = await axios.post<ProfileInfo>(apiMap.profileInfo)
+      const { clickerUser } = await axios.post<ProfileModel>(API_MAP.profileInfo)
       return clickerUser
     } catch (e) {
       throw new Error(`Api | getProfileInfo() | ${e}`)
@@ -41,7 +47,7 @@ class Api {
   async selectExchange(axios: Axios, exchangeId: string) {
     try {
       const dto = { exchangeId }
-      const { clickerUser } = await axios.post<ProfileInfo>(apiMap.exchange, { data: dto })
+      const { clickerUser } = await axios.post<ProfileModel>(API_MAP.exchange, { data: dto })
       return clickerUser
     } catch (e) {
       throw new Error(`Api | selectExchange(${exchangeId}) | ${e}`)
@@ -50,7 +56,7 @@ class Api {
 
   async getTasks(axios: Axios) {
     try {
-      const { tasks } = await axios.post<TasksList>(apiMap.tasksList)
+      const { tasks } = await axios.post<TasksListModel>(API_MAP.tasksList)
       return tasks
     } catch (e) {
       throw new Error(`Api | getTasks() | ${e}`)
@@ -60,7 +66,7 @@ class Api {
   async completeTask(axios: Axios, taskId: string) {
     try {
       const dto = { taskId }
-      const { task } = await axios.post<CompletedTask>(apiMap.completeTask, {
+      const { task } = await axios.post<CompletedTaskModel>(API_MAP.completeTask, {
         data: dto,
       })
       return task
@@ -72,7 +78,7 @@ class Api {
   async sendTaps(axios: Axios, count: number, availableTaps: number) {
     try {
       const dto = { count, availableTaps, timestamp: time() }
-      const { clickerUser } = await axios.post<ProfileInfo>(apiMap.tap, { data: dto })
+      const { clickerUser } = await axios.post<ProfileModel>(API_MAP.tap, { data: dto })
       return clickerUser
     } catch (e) {
       throw new Error(`Api | sendTaps(${count}) | ${e}`)
@@ -82,7 +88,7 @@ class Api {
   async applyBoost(axios: Axios, boostId: string) {
     try {
       const dto = { boostId, timestamp: time() }
-      const { clickerUser } = await axios.post<ProfileInfo>(apiMap.boost, { data: dto })
+      const { clickerUser } = await axios.post<ProfileModel>(API_MAP.boost, { data: dto })
       return clickerUser
     } catch (e) {
       throw new Error(`Api | applyBoost(${boostId}) | ${e}`)
@@ -91,7 +97,7 @@ class Api {
 
   async getUpgrades(axios: Axios) {
     try {
-      const { upgradesForBuy } = await axios.post<Upgrades>(apiMap.upgrades)
+      const { upgradesForBuy } = await axios.post<UpgradesModel>(API_MAP.upgrades)
       return upgradesForBuy
     } catch (e) {
       throw new Error(`Api | getUpgrades() | ${e}`)
@@ -101,7 +107,7 @@ class Api {
   async buyUpgrade(axios: Axios, upgradeId: string) {
     try {
       const dto = { upgradeId, timestamp: Date.now() }
-      const { clickerUser } = await axios.post<ProfileInfo>(apiMap.buyUpgrade, { data: dto })
+      const { clickerUser } = await axios.post<ProfileModel>(API_MAP.buyUpgrade, { data: dto })
       return clickerUser
     } catch (e) {
       throw new Error(`Api | buyUpgrade(${upgradeId}) | ${e}`)
@@ -109,4 +115,4 @@ class Api {
   }
 }
 
-export const api = new Api()
+export const Api = new ApiService()
