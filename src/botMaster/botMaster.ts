@@ -3,13 +3,14 @@ import { Account } from '~/services/accountManager'
 import { config } from '~/config'
 import { logger, sleep, time } from '~/utils'
 import { buildClientParams, getRandomRangeNumber, isValidWebData } from '~/helpers'
-import { BotMasterState } from './botMaster.interface'
 import Axios from '~/services/axios'
 import { StringSession } from 'telegram/sessions'
 import { Api, TelegramClient } from 'telegram'
 import { FloodWaitError } from 'telegram/errors'
 import { ONE_DAY_TIMESTAMP, ONE_HOUR_TIMESTAMP } from '~/constants'
 import { DB } from '~/services/dbService'
+import { BOT_MASTER_AXIOS_CONFIG } from '~/botMaster/constants'
+import { BotMasterState } from './interfaces'
 
 const dailyTaskId = 'streak_days'
 const {
@@ -39,7 +40,11 @@ export class BotMaster {
   _: Axios
 
   constructor(props: Account) {
-    this._ = new Axios({ headers: props.agent }, props.proxyString)
+    const { headers, baseURL } = BOT_MASTER_AXIOS_CONFIG
+    this._ = new Axios({
+      config: { baseURL, headers: { ...headers, ...props.agent } },
+      proxyString: props.proxyString,
+    })
     this.account = props
   }
 

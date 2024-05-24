@@ -1,15 +1,15 @@
 import { SocksProxyAgent } from 'socks-proxy-agent'
 import { IpInfo, Proxy } from './proxy.interface'
 import { logger } from '~/utils'
-import BaseAxios from '~/services/baseAxios'
+import Axios from '~/services/axios'
 
 class ProxyService {
-  private axios: BaseAxios
+  private axios: Axios
   private ipInfoUrl = 'https://ipinfo.io/json'
   private regex = /^(?<login>[\w-]+):(?<password>[\w-]+)@(?<host>[\w.-]+):(?<port>\d+)$/
 
   constructor() {
-    this.axios = new BaseAxios({})
+    this.axios = new Axios({})
   }
 
   getAgent(proxyString: string) {

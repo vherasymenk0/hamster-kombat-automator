@@ -1,5 +1,4 @@
 import { ProfileInfo } from '~/services/api'
-import { Account } from '~/services/accountManager'
 
 export interface BotMasterState
   extends Pick<
@@ -11,5 +10,3 @@ export interface BotMasterState
   maxEnergy: number
   lastCompletedDaily: number
 }
-
-export type BotMasterProps = Omit<Account, 'session' | 'fingerprint'>

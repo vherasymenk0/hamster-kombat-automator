@@ -45,6 +45,7 @@
   "dependencies": {
     "@types/ua-parser-js": "^0.7.39",
     "axios": "^1.6.8",
+    "axios-retry": "^4.3.0",
     "dotenv": "^16.4.5",
     "inquirer": "^8.2.4",
     "socks-proxy-agent": "^8.0.3",
