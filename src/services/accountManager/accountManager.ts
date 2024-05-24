@@ -13,15 +13,16 @@ import { config } from '~/config'
 import { DB } from '~/services/dbService'
 import { buildClientParams } from '~/helpers'
 import { generateUA, logger } from '~/utils'
+import { proxyService } from '~/services/proxyService'
 
 class AccountManager {
   async add(): Promise<void> {
     const { api_id, api_hash } = config.settings
 
     const name = await this._createName()
-    const proxyString = await proxyPrompt()
-    const tgClientParams = await buildClientParams(proxyString, name)
+    const proxyString = await this.getProxyString(name)
 
+    const tgClientParams = await buildClientParams(proxyString)
     const client = new TelegramClient(new StringSession(''), api_id, api_hash, tgClientParams)
 
     try {
@@ -41,6 +42,19 @@ class AccountManager {
       await client.disconnect()
       process.exit(0)
     }
+  }
+
+  private async getProxyString(id: string): Promise<string> {
+    const proxyString = await proxyPrompt()
+    const isValid = proxyService.isValid(proxyString)
+
+    if (!isValid) {
+      logger.error('Invalid proxy format, try again')
+      return this.getProxyString(id)
+    }
+    await proxyService.check(proxyString, id)
+
+    return proxyString
   }
 
   private async _createName(): Promise<string> {

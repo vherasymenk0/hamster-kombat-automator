@@ -1,8 +1,7 @@
 import inquirer, { QuestionCollection } from 'inquirer'
-import { PROXY_TEMPLATE, proxyService } from '~/services/proxyService'
-import { logger } from '~/utils'
+import { PROXY_TEMPLATE } from '~/services/proxyService'
 
-export const proxyPrompt = async (): Promise<string | null> => {
+export const proxyPrompt = async (): Promise<string> => {
   const questions: QuestionCollection = [
     {
       type: 'input',
@@ -12,18 +11,6 @@ export const proxyPrompt = async (): Promise<string | null> => {
   ]
 
   const { proxy = '' } = await inquirer.prompt(questions)
-  const isValid = proxyService.isValidProxy(proxy)
-
-  if (!proxy) return null
-  if (!isValid) {
-    logger.error('Invalid proxy format, try again')
-    return proxyPrompt()
-  }
-
-  const prx = proxyService.parse(proxy)
-  const { ip, country, city, timezone } = await proxyService.check(prx)
-  logger.info(`Proxy_info: ${ip} | ${country} | ${city} | ${timezone}`)
-
   return proxy
 }
 

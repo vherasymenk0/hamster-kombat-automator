@@ -1,32 +1,29 @@
 import { SocksProxyAgent } from 'socks-proxy-agent'
-import axios from 'axios'
 import { IpInfo, Proxy } from './proxy.interface'
 import { logger } from '~/utils'
+import BaseAxios from '~/services/baseAxios'
 
 class ProxyService {
-  private ipInfoUrl: string
-  private regex: RegExp
+  private axios: BaseAxios
+  private ipInfoUrl = 'https://ipinfo.io/json'
+  private regex = /^(?<login>[\w-]+):(?<password>[\w-]+)@(?<host>[\w.-]+):(?<port>\d+)$/
 
   constructor() {
-    this.ipInfoUrl = 'https://ipinfo.io/json'
-    this.regex = /^(?<login>[\w-]+):(?<password>[\w-]+)@(?<host>[\w.-]+):(?<port>\d+)$/
+    this.axios = new BaseAxios({})
   }
 
-  getHttpsAgent(proxy: string | Proxy) {
-    let proxyString = null
-
-    if (typeof proxy === 'string') proxyString = proxy
-    else proxyString = this.stringify(proxy)
-
-    return new SocksProxyAgent(proxyString)
+  getAgent(proxyString: string) {
+    const parsedProxy = this.parse(proxyString)
+    const proxy = this.toStringAgent(parsedProxy)
+    return new SocksProxyAgent(proxy)
   }
 
-  isValidProxy(proxyString: string) {
+  isValid(proxyString: string) {
     return this.regex.test(proxyString)
   }
 
   parse(proxyString: string) {
-    const isValid = this.isValidProxy(proxyString)
+    const isValid = this.isValid(proxyString)
 
     if (!isValid) {
       logger.error('Invalid proxy format')
@@ -44,7 +41,7 @@ class ProxyService {
     }
   }
 
-  stringify(proxy: Proxy): string {
+  toStringAgent(proxy: Proxy): string {
     const { host, port, login, password } = proxy
     let result = 'socks5://'
 
@@ -54,11 +51,17 @@ class ProxyService {
     return result
   }
 
-  async check(proxy: Proxy) {
-    const httpsAgent = this.getHttpsAgent(proxy)
-    const res = await axios.get<IpInfo>(this.ipInfoUrl, { timeout: 5000, httpsAgent })
-
-    return res.data
+  async check(proxyString: string, id: string) {
+    try {
+      const httpsAgent = this.getAgent(proxyString)
+      const { ip, country, city, timezone } = await this.axios.get<IpInfo>(this.ipInfoUrl, {
+        httpsAgent,
+        httpAgent: httpsAgent,
+      })
+      logger.info(`${id} | proxy_info: ${ip} | ${country} | ${city} | ${timezone}`)
+    } catch (e) {
+      throw new Error(`Error during connect to proxy ${proxyString} | error: ${String(e)}`)
+    }
   }
 }
 
