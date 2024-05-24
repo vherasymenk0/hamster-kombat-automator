@@ -3,7 +3,6 @@ import { getEnvVar, stringToBoolean } from '~/helpers'
 const settings = {
   api_id: Number(getEnvVar('API_ID')),
   api_hash: getEnvVar('API_HASH'),
-  use_proxy: stringToBoolean(getEnvVar('USE_PROXY', 'false')),
   tap_mode: stringToBoolean(getEnvVar('TAP_MODE', 'true')),
   min_energy: 100,
   turbo_taps_count: 2500,

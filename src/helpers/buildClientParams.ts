@@ -1,6 +1,5 @@
 import { TelegramClientParams } from 'telegram/client/telegramBaseClient'
 import { proxyService } from '~/services/proxyService'
-import { config } from '~/config'
 import { Account } from '~/services/accountManager'
 import { logger } from '~/utils'
 
@@ -8,10 +7,9 @@ export const buildClientParams = async (
   proxyString: string | null,
   accountName: Account['name'],
 ) => {
-  const { use_proxy } = config.settings
   let params: TelegramClientParams = { connectionRetries: 5 }
 
-  if (proxyString && use_proxy) {
+  if (proxyString) {
     const proxy = proxyService.parse(proxyString)
     const { port, host, password, login } = proxy
 

@@ -30,7 +30,6 @@
 | Property                 | Description                                                                             |
 |--------------------------|-----------------------------------------------------------------------------------------|
 | 🔑 **API_ID / API_HASH** | Telegram client app credentials ([FYI](https://core.telegram.org/api/obtaining_api_id)) |
-| 🌐 **USE_PROXY**         | OFF/ON start in proxy mode (**true / false**) - default **false**                       |
 | 🖱️ **TAP_MODE**         | OFF/ON auto clicker (**true / false**) - default **true**                               |
 ---
 ### 📥 Installation
