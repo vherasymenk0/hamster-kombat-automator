@@ -158,13 +158,27 @@ export class Automator extends TGClient {
 
     const availableUpgrades = data
       .filter(
-        ({ isAvailable: isUnlock, isExpired, level, maxLevel = 999, cooldownSeconds = 0 }) => {
+        ({
+          isAvailable: isUnlock,
+          isExpired,
+          level,
+          maxLevel = 999,
+          cooldownSeconds = 0,
+          condition = null,
+        }) => {
           const isAvailable = isUnlock && !isExpired
           const hasMaxUpgradeLevel = level >= max_upgrade_lvl
           const isAvailableToUpgrade = maxLevel > level
           const isCooldown = cooldownSeconds !== 0
+          const isPassCondition = condition ? condition._type !== 'SubscribeTelegramChannel' : true
 
-          return isAvailable && !hasMaxUpgradeLevel && isAvailableToUpgrade && !isCooldown
+          return (
+            isAvailable &&
+            !hasMaxUpgradeLevel &&
+            isAvailableToUpgrade &&
+            !isCooldown &&
+            isPassCondition
+          )
         },
       )
       .sort((a, b) => {
