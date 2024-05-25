@@ -19,7 +19,7 @@ interface UpgradeSection {
   isAvailable: boolean
 }
 
-interface UpgradeItem {
+export interface UpgradeItem {
   id: string
   name: string
   price: number

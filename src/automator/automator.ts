@@ -1,6 +1,6 @@
 import { config } from '~/config'
 import { Axios, log, Proxy, TGClient } from '~/services'
-import { AutomatorState, ProfileModel } from './interfaces'
+import { AutomatorState, ProfileModel, UpgradeItem } from './interfaces'
 import { AccountModel } from '~/interfaces'
 import { BOT_MASTER_AXIOS_CONFIG, DAILY_TASK_ID } from './constants'
 import { Api } from './api'
@@ -21,6 +21,7 @@ const {
 
 export class Automator extends TGClient {
   private tokenCreatedTime = 0
+  private timeToUpgrade = 0
   private state: AutomatorState = {
     availableTaps: 0,
     totalCoins: 0,
@@ -31,6 +32,7 @@ export class Automator extends TGClient {
     maxEnergy: 0,
     tapsRecoverPerSec: 0,
     lastCompletedDaily: 0,
+    earnPassivePerSec: 0,
   }
   private isStateInit = false
   private readonly ax: Axios
@@ -68,6 +70,7 @@ export class Automator extends TGClient {
       turboBoostLastUpdate: info.boosts?.BoostMaxTaps?.lastUpgradeAt || 0,
       maxEnergy: info.maxTaps,
       tapsRecoverPerSec: info.tapsRecoverPerSec,
+      earnPassivePerSec: info.earnPassivePerSec,
       lastCompletedDaily,
     }
     this.isStateInit = true
@@ -84,7 +87,7 @@ export class Automator extends TGClient {
     const { lastPassiveEarn, earnPassivePerHour } = data
     this.updateState(data)
 
-    const lpe = lastPassiveEarn.toFixed(2)
+    const lpe = lastPassiveEarn.toFixed()
     log.info(`Last passive earn: ${lpe} | Earn every hour: ${earnPassivePerHour}`, this.client.name)
   }
 
@@ -138,7 +141,7 @@ export class Automator extends TGClient {
     this.updateState(data)
 
     log.success(
-      `Successfully tapped! (+${tapsCount}) | Balance: ${data.balanceCoins}`,
+      `Successfully tapped! (+${tapsCount}) | Balance: ${data.balanceCoins.toFixed()}`,
       this.client.name,
     )
   }
@@ -167,26 +170,26 @@ export class Automator extends TGClient {
     return availableUpgrades
   }
 
-  private async buyAvailableUpgrades() {
-    const upgrades = await this.getAvailableUpgrades()
-    let balance = this.state.balanceCoins
-    let profileInfo = null
+  private async buyUpgrade({ price, id, level, profitPerHourDelta }: UpgradeItem) {
+    const { balanceCoins, earnPassivePerSec } = this.state
 
-    for (const { profitPerHourDelta, id, level, price } of upgrades) {
-      if (balance >= price) {
-        const res = await Api.buyUpgrade(this.ax, id)
-        profileInfo = res
-        balance -= price
+    if (balanceCoins >= price) {
+      const res = await Api.buyUpgrade(this.ax, id)
+      this.updateState(res)
 
-        log.success(
-          `Upgraded [${id}] to ${level} lvl | +${profitPerHourDelta} | Total per hour ${res.earnPassivePerHour}`,
-          this.client.name,
-        )
-        await wait(4)
-      }
+      log.success(
+        `Upgraded [${id}] to ${level} lvl | +${profitPerHourDelta} | Total per hour ${res.earnPassivePerHour}`,
+        this.client.name,
+      )
+    } else {
+      const timeInSec = (price - balanceCoins) / earnPassivePerSec
+      const timeInMin = timeInSec / 60
+      this.timeToUpgrade = time() + timeInSec
+      log.warn(
+        `Wait for ${timeInMin.toFixed()} minutes to upgrade [${id}] to ${level} lvl`,
+        this.client.name,
+      )
     }
-
-    if (profileInfo) this.updateState(profileInfo)
   }
 
   async start() {
@@ -213,6 +216,8 @@ export class Automator extends TGClient {
         const isDailyEnergyReady = time() - energyBoostLastUpdate > ONE_HOUR_TIMESTAMP
         const isDailyTaskAvailable = time() - lastCompletedDaily > ONE_DAY_TIMESTAMP
 
+        console.log('timeToUpgrade -->', this.timeToUpgrade)
+
         try {
           if (isTokenExpired) {
             await this.auth(tgWebData)
@@ -238,9 +243,9 @@ export class Automator extends TGClient {
             continue
           }
 
-          if (!isDailyTurboReady) {
-            await this.buyAvailableUpgrades()
-            await wait()
+          if (!isDailyTurboReady && time() > this.timeToUpgrade) {
+            const upgrades = await this.getAvailableUpgrades()
+            if (upgrades.length !== 0) await this.buyUpgrade(upgrades[0])
           }
 
           if (tap_mode) {
@@ -276,7 +281,7 @@ export class Automator extends TGClient {
           }
         } catch (e) {
           log.error(String(e), this.client.name)
-          await wait(7)
+          await wait(15)
         }
       }
     } catch (error) {
