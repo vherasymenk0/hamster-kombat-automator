@@ -38,16 +38,16 @@ export class Automator extends TGClient {
   constructor(props: AccountModel) {
     super(props)
     const { headers, baseURL } = BOT_MASTER_AXIOS_CONFIG
-    const config: AxiosRequestConfig = { baseURL, headers: { ...headers, ...props.agent } }
+    let axiosConfig: AxiosRequestConfig = { baseURL, headers: { ...headers, ...props.agent } }
 
     if (this.client?.proxyString) {
       const agent = Proxy.getAgent(this.client.proxyString)
-      config.httpsAgent = agent
-      config.httpAgent = agent
+      axiosConfig.httpsAgent = agent
+      axiosConfig.httpAgent = agent
     }
 
     this.ax = new Axios({
-      config,
+      config: axiosConfig,
       proxyString: props.proxyString,
     })
   }
@@ -90,7 +90,8 @@ export class Automator extends TGClient {
 
   private async selectExchange() {
     const exchange = 'okx'
-    await Api.selectExchange(this.ax, exchange)
+    const data = await Api.selectExchange(this.ax, exchange)
+    this.updateState(data)
 
     log.success(`Successfully selected ${exchange} exchange`, this.client.name)
   }
