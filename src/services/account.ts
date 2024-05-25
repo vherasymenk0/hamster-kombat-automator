@@ -31,7 +31,7 @@ class AccountManager {
 
   private async _createName(): Promise<string> {
     const name = await accountNamePrompt()
-    const isAccountExisted = this._isExists(name)
+    const isAccountExisted = this.isExists(name)
 
     if (isAccountExisted) {
       const action = await accountActionPrompt(name)
@@ -43,7 +43,7 @@ class AccountManager {
     return name
   }
 
-  private async _save(session: string, proxyString: string | null, name: string): Promise<void> {
+  private async save(session: string, proxyString: string | null, name: string): Promise<void> {
     const agent = generateUA()
     const account: AccountModel = {
       name,
@@ -58,7 +58,7 @@ class AccountManager {
     log.success(`${name} account has been successfully saved`)
   }
 
-  private _isExists(name: string) {
+  private isExists(name: string) {
     const clients = DB.getAll()
     return clients.some((client) => client.name === name)
   }
@@ -81,7 +81,7 @@ class AccountManager {
       })
       const session = client.session.save() as unknown as string
 
-      await this._save(session, proxyString, name)
+      await this.save(session, proxyString, name)
     } catch (e) {
       log.error(String(e))
     } finally {
