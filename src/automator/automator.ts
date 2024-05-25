@@ -137,7 +137,7 @@ export class Automator extends TGClient {
     this.updateState(data)
 
     log.success(
-      `Successfully tapped! (+${tapsCount}) | Balance: ${data.balanceCoins.toFixed(2)}`,
+      `Successfully tapped! (+${tapsCount}) | Balance: ${data.balanceCoins}`,
       this.client.name,
     )
   }
@@ -146,13 +146,16 @@ export class Automator extends TGClient {
     const data = await Api.getUpgrades(this.ax)
 
     const availableUpgrades = data
-      .filter(({ isAvailable: isUnlock, isExpired, level, maxLevel = 999 }) => {
-        const isAvailable = isUnlock && !isExpired
-        const hasMaxUpgradeLevel = level >= max_upgrade_lvl
-        const isAvailableToUpgrade = maxLevel > level
+      .filter(
+        ({ isAvailable: isUnlock, isExpired, level, maxLevel = 999, cooldownSeconds = 0 }) => {
+          const isAvailable = isUnlock && !isExpired
+          const hasMaxUpgradeLevel = level >= max_upgrade_lvl
+          const isAvailableToUpgrade = maxLevel > level
+          const isCooldown = cooldownSeconds !== 0
 
-        return isAvailable && !hasMaxUpgradeLevel && isAvailableToUpgrade
-      })
+          return isAvailable && !hasMaxUpgradeLevel && isAvailableToUpgrade && !isCooldown
+        },
+      )
       .sort((a, b) => {
         const a_ppr = a.profitPerHourDelta / a.price
         const b_ppr = b.profitPerHourDelta / b.price

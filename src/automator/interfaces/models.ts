@@ -30,6 +30,8 @@ interface UpgradeItem {
   level: number
   maxLevel?: number
   currentProfitPerHour: number
+  totalCooldownSeconds?: number
+  cooldownSeconds?: number
   profitPerHourDelta: number
   isAvailable: boolean
   isExpired: boolean
