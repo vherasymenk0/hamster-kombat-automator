@@ -124,13 +124,20 @@ export class Automator extends TGClient {
   }
 
   private async applyDailyEnergy() {
-    const data = await Api.applyBoost(this.ax, 'BoostFullAvailableTaps')
-    this.updateState(data)
+    const boosts = await Api.getBoosts(this.ax)
+    const { level, maxLevel = 999 } = boosts.filter(({ id }) => id === 'BoostFullAvailableTaps')[0]
 
-    log.success(
-      `Energy has been successfully restored | Energy: ${data.availableTaps}`,
-      this.client.name,
-    )
+    if (maxLevel > level) {
+      const data = await Api.applyBoost(this.ax, 'BoostFullAvailableTaps')
+      this.updateState(data)
+
+      log.success(
+        `Energy has been successfully restored | Energy: ${data.availableTaps}`,
+        this.client.name,
+      )
+    } else {
+      log.warn('The limit of free energy restorers for today has been reached!', this.client.name)
+    }
   }
 
   private async sendTaps(count?: number) {
@@ -215,8 +222,6 @@ export class Automator extends TGClient {
         const isDailyTurboReady = time() - turboBoostLastUpdate > ONE_DAY_TIMESTAMP && false // Turbo is not available in the app right now
         const isDailyEnergyReady = time() - energyBoostLastUpdate > ONE_HOUR_TIMESTAMP
         const isDailyTaskAvailable = time() - lastCompletedDaily > ONE_DAY_TIMESTAMP
-
-        console.log('timeToUpgrade -->', this.timeToUpgrade)
 
         try {
           if (isTokenExpired) {

@@ -1,5 +1,6 @@
 import { Axios } from '~/services'
 import {
+  BoostsModel,
   CompletedTaskModel,
   LoginResponseModel,
   ProfileModel,
@@ -101,6 +102,15 @@ class ApiService {
       return upgradesForBuy
     } catch (e) {
       throw new Error(`Api | getUpgrades() | ${e}`)
+    }
+  }
+
+  async getBoosts(axios: Axios) {
+    try {
+      const { boostsForBuy } = await axios.post<BoostsModel>(API_MAP.boostForBuy)
+      return boostsForBuy
+    } catch (e) {
+      throw new Error(`Api | getBoosts() | ${e}`)
     }
   }
 

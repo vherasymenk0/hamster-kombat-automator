@@ -26,5 +26,6 @@ export const API_MAP = {
   boost: '/clicker/buy-boost',
   upgrades: '/clicker/upgrades-for-buy',
   buyUpgrade: '/clicker/buy-upgrade',
+  boostForBuy: '/clicker/boosts-for-buy',
   tap: '/clicker/tap',
 } as const

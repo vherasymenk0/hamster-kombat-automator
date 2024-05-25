@@ -112,3 +112,17 @@ export interface UpgradesModel {
   upgradesForBuy: UpgradeItem[]
   sections: UpgradeSection[]
 }
+
+export interface BoostsModel {
+  boostsForBuy: {
+    id: 'BoostFullAvailableTaps' | 'BoostEarnPerTap' | 'BoostMaxTaps'
+    price: number
+    earnPerTap: number
+    maxTaps: number
+    maxLevel?: number
+    cooldownSeconds: number
+    level: number
+    maxTapsDelta: number
+    earnPerTapDelta: number
+  }[]
+}
