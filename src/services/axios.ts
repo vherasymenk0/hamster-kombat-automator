@@ -35,24 +35,24 @@ export class Axios {
             `api_code: ${errorInfo.error_code} | api_message: ${errorInfo.error_message}`,
           )
 
-        if (error.code === AxiosError.ECONNABORTED)
-          throw new Error(`Timeout Error: ${error.message}`)
+        if (error.code === AxiosError.ECONNABORTED) {
+          axiosRetry(this.instance, {
+            retries: 3,
+
+            retryDelay: (...arg) => axiosRetry.exponentialDelay(...arg, 3000),
+            retryCondition(e) {
+              const statusCode = e?.response?.status
+              if (!statusCode) return false
+
+              const retryErrorCodes = [429, 502, 503, 504]
+              return retryErrorCodes.includes(statusCode)
+            },
+          })
+        }
 
         throw new Error(error.message)
       },
     )
-
-    axiosRetry(this.instance, {
-      retries: 3,
-      retryDelay: (...arg) => axiosRetry.exponentialDelay(...arg, 1000),
-      retryCondition(error) {
-        const statusCode = error?.response?.status
-        if (!statusCode) return false
-
-        const retryErrorCodes = [429, 502, 503, 504]
-        return retryErrorCodes.includes(statusCode)
-      },
-    })
   }
 
   async makeRequest(method: string, url: string, options: AxiosRequestConfig = {}) {
