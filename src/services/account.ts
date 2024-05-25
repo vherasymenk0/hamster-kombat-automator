@@ -18,6 +18,8 @@ import { log } from './logger'
 class AccountManager {
   private async getProxyString(id: string): Promise<string> {
     const proxyString = await proxyPrompt()
+    if (proxyString === '') return proxyString
+
     const isValid = Proxy.isValid(proxyString)
 
     if (!isValid) {
