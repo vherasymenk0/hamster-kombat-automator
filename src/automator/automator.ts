@@ -21,7 +21,6 @@ const {
 
 export class Automator extends TGClient {
   private tokenCreatedTime = 0
-  private timeToUpgrade = 0
   private state: AutomatorState = {
     availableTaps: 0,
     totalCoins: 0,
@@ -192,7 +191,7 @@ export class Automator extends TGClient {
   }
 
   private async buyUpgrade({ price, id, level, profitPerHourDelta }: UpgradeItem) {
-    const { balanceCoins, earnPassivePerSec } = this.state
+    const { balanceCoins } = this.state
 
     if (balanceCoins >= price) {
       const res = await Api.buyUpgrade(this.ax, id)
@@ -203,13 +202,17 @@ export class Automator extends TGClient {
         this.client.name,
       )
     } else {
-      const timeInSec = (price - balanceCoins) / earnPassivePerSec
-      const timeInMin = timeInSec / 60
-      this.timeToUpgrade = time() + timeInSec
+      const data = await Api.getProfileInfo(this.ax)
+      const { balanceCoins: balance } = data
+
+      this.updateState(data)
+      const sleepTime = 600
       log.warn(
-        `Wait for ${timeInMin.toFixed()} minutes to upgrade [${id}] to ${level} lvl`,
+        `Insufficient balance to improve [${id}] to ${level} lvl | Price: ${price} | Balance ${balance.toFixed()}`,
         this.client.name,
       )
+      log.warn(`Sleep ${sleepTime / 60} minutes`, this.client.name)
+      await wait(sleepTime)
     }
   }
 
@@ -262,7 +265,7 @@ export class Automator extends TGClient {
             continue
           }
 
-          if (!isDailyTurboReady && time() > this.timeToUpgrade) {
+          if (!isDailyTurboReady) {
             const upgrades = await this.getAvailableUpgrades()
             if (upgrades.length !== 0) await this.buyUpgrade(upgrades[0])
           }
