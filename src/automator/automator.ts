@@ -286,7 +286,6 @@ export class Automator extends TGClient {
         await wait(error.seconds)
       }
       await wait()
-      await this.start()
     }
   }
 }
