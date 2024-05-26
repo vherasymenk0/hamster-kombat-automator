@@ -124,9 +124,9 @@ export class Automator extends TGClient {
 
   private async applyDailyEnergy() {
     const boosts = await Api.getBoosts(this.ax)
-    const { level, maxLevel = 999 } = boosts.filter(({ id }) => id === 'BoostFullAvailableTaps')[0]
+    const { level, cooldownSeconds } = boosts.filter(({ id }) => id === 'BoostFullAvailableTaps')[0]
 
-    if (maxLevel > level) {
+    if (level < 6 && cooldownSeconds === 0) {
       const data = await Api.applyBoost(this.ax, 'BoostFullAvailableTaps')
       this.updateState(data)
 
