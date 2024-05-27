@@ -88,4 +88,30 @@ export class TGClient {
 
     return webData
   }
+  
+  protected async subscribeToChannel(username: string) {
+	let success: boolean = true;
+	let client;
+	
+	try{
+		client = await this.getClient();
+		
+		const result = await client.invoke(
+			new Api.channels.JoinChannel({
+			  channel: username,
+			})
+		  );
+		  
+		log.success(`Subscribed to channel '${username}'`, this.client.name)
+		
+		
+	} catch(e) {
+		success = false;
+		log.error(`Subscrubing to channel '${username}' failed. Error: '{JSON.stringify(e)}'`, this.client.name)
+	} finally {
+		await client?.destroy();
+	}
+	
+	return success;
+  }
 }
