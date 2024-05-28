@@ -8,7 +8,7 @@ const settings = {
   turbo_taps_count: 2500,
   max_upgrade_lvl: 20,
   taps_count_range: [50, 199],
-  sleep_between_taps: [5, 8],
+  sleep_between_taps: [20, 35],
 }
 
 export const config = {
