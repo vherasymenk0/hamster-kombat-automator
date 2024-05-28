@@ -154,6 +154,14 @@ export class Automator extends TGClient {
 
   private async getAvailableUpgrades() {
     const data = await Api.getUpgrades(this.ax)
+	
+	const channelsToSubscribe = data.filter(({ isAvailable, isExpired, condition }) => {
+	  return !isAvailable && !isExpired && condition && condition._type === 'SubscribeTelegramChannel';
+	});
+	
+	await Promise.all(channelsToSubscribe.map(async ({ condition }) => {
+	  await this.subscribeToChannel(condition!.link);
+	}));
 
     const availableUpgrades = data
       .filter(
@@ -164,12 +172,14 @@ export class Automator extends TGClient {
           maxLevel = 999,
           cooldownSeconds = 0,
           condition = null,
+		  id
         }) => {
           const isAvailable = isUnlock && !isExpired
           const hasMaxUpgradeLevel = level >= max_upgrade_lvl
           const isAvailableToUpgrade = maxLevel > level
           const isCooldown = cooldownSeconds !== 0
-          const isPassCondition = condition ? condition._type !== 'SubscribeTelegramChannel' : true
+		  
+          const isPassCondition = true // if not pass - isAvailable (aka isUnlock) will be false
 
           return (
             isAvailable &&
