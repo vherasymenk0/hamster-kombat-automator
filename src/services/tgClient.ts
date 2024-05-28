@@ -88,30 +88,24 @@ export class TGClient {
 
     return webData
   }
-  
+
   protected async subscribeToChannel(username: string) {
-	let success: boolean = true;
-	let client;
-	
-	try{
-		client = await this.getClient();
-		
-		const result = await client.invoke(
-			new Api.channels.JoinChannel({
-			  channel: username,
-			})
-		  );
-		  
-		log.success(`Subscribed to channel '${username}'`, this.client.name)
-		
-		
-	} catch(e) {
-		success = false;
-		log.error(`Subscrubing to channel '${username}' failed. Error: '{JSON.stringify(e)}'`, this.client.name)
-	} finally {
-		await client?.destroy();
-	}
-	
-	return success;
+    let client
+
+    try {
+      client = await this.getClient()
+      const channel = await client.getEntity(username)
+      await wait(1)
+      await client.invoke(new Api.channels.JoinChannel({ channel }))
+
+      log.success(`Subscribed to channel [${username}]`, this.client.name)
+    } catch (e) {
+      log.error(
+        `Subscribing to channel [${username}] failed. Error: ${String(e)}`,
+        this.client.name,
+      )
+    } finally {
+      await client?.destroy()
+    }
   }
 }

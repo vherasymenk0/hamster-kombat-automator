@@ -21,6 +21,7 @@ const {
 
 export class Automator extends TGClient {
   private tokenCreatedTime = 0
+  private upgradeSleep = 0
   private state: AutomatorState = {
     availableTaps: 0,
     totalCoins: 0,
@@ -154,14 +155,18 @@ export class Automator extends TGClient {
 
   private async getAvailableUpgrades() {
     const data = await Api.getUpgrades(this.ax)
-	
-	const channelsToSubscribe = data.filter(({ isAvailable, isExpired, condition }) => {
-	  return !isAvailable && !isExpired && condition && condition._type === 'SubscribeTelegramChannel';
-	});
-	
-	await Promise.all(channelsToSubscribe.map(async ({ condition }) => {
-	  await this.subscribeToChannel(condition!.link);
-	}));
+
+    const channelsToSubscribe = data.filter(
+      ({ isAvailable, isExpired, condition }) =>
+        !isAvailable && !isExpired && condition && condition._type === 'SubscribeTelegramChannel',
+    )
+
+    await Promise.all(
+      channelsToSubscribe.map(async ({ condition }) => {
+        await wait()
+        await this.subscribeToChannel(condition!.link)
+      }),
+    )
 
     const availableUpgrades = data
       .filter(
@@ -172,14 +177,12 @@ export class Automator extends TGClient {
           maxLevel = 999,
           cooldownSeconds = 0,
           condition = null,
-		  id
         }) => {
           const isAvailable = isUnlock && !isExpired
           const hasMaxUpgradeLevel = level >= max_upgrade_lvl
           const isAvailableToUpgrade = maxLevel > level
           const isCooldown = cooldownSeconds !== 0
-		  
-          const isPassCondition = true // if not pass - isAvailable (aka isUnlock) will be false
+          const isPassCondition = condition ? condition._type !== 'SubscribeTelegramChannel' : true
 
           return (
             isAvailable &&
@@ -221,6 +224,8 @@ export class Automator extends TGClient {
         `Insufficient balance to improve [${id}] to ${level} lvl | Price: ${price} | Balance ${balance.toFixed()}`,
         this.client.name,
       )
+
+      this.upgradeSleep = time() + sleepTime
       log.warn(`Sleep ${sleepTime / 60} minutes`, this.client.name)
       await wait(sleepTime)
     }
@@ -275,7 +280,7 @@ export class Automator extends TGClient {
             continue
           }
 
-          if (!isDailyTurboReady) {
+          if (!isDailyTurboReady && time() > this.upgradeSleep) {
             const upgrades = await this.getAvailableUpgrades()
             if (upgrades.length !== 0) await this.buyUpgrade(upgrades[0])
           }
