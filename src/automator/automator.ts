@@ -22,6 +22,7 @@ const {
 export class Automator extends TGClient {
   private tokenCreatedTime = 0
   private upgradeSleep = 0
+  private energyBoostTimeout = 0
   private state: AutomatorState = {
     availableTaps: 0,
     totalCoins: 0,
@@ -136,6 +137,7 @@ export class Automator extends TGClient {
         this.client.name,
       )
     } else {
+      this.energyBoostTimeout = time() + ONE_DAY_TIMESTAMP
       log.warn('The limit of free energy restorers for today has been reached!', this.client.name)
     }
   }
@@ -286,7 +288,7 @@ export class Automator extends TGClient {
               continue
             }
 
-            if (isDailyEnergyReady) {
+            if (isDailyEnergyReady && time() > this.energyBoostTimeout) {
               await this.applyDailyEnergy()
               await wait()
             } else {
