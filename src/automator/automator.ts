@@ -191,31 +191,29 @@ export class Automator extends TGClient {
     return availableUpgrades
   }
 
-  private async buyUpgrade({ price, id, level, profitPerHourDelta }: UpgradeItem) {
-    const { balanceCoins } = this.state
+  private async buyUpgrade({ id, level, profitPerHourDelta }: UpgradeItem) {
+    const res = await Api.buyUpgrade(this.ax, id)
+    this.updateState(res)
 
-    if (balanceCoins >= price) {
-      const res = await Api.buyUpgrade(this.ax, id)
-      this.updateState(res)
+    log.success(
+      `Upgraded [${id}] to ${level} lvl | +${profitPerHourDelta} | Total per hour ${res.earnPassivePerHour}`,
+      this.client.name,
+    )
+  }
 
-      log.success(
-        `Upgraded [${id}] to ${level} lvl | +${profitPerHourDelta} | Total per hour ${res.earnPassivePerHour}`,
-        this.client.name,
-      )
-    } else {
-      const data = await Api.getProfileInfo(this.ax)
-      const { balanceCoins: balance } = data
+  private async delayUpgrade({ id, level, price }: UpgradeItem) {
+    const data = await Api.getProfileInfo(this.ax)
+    const { balanceCoins: balance } = data
 
-      this.updateState(data)
-      const sleepTime = 600
-      log.warn(
-        `Insufficient balance to improve [${id}] to ${level} lvl | Price: ${price} | Balance ${balance.toFixed()}`,
-        this.client.name,
-      )
+    this.updateState(data)
+    const sleepTime = 600
+    log.warn(
+      `Insufficient balance to improve [${id}] to ${level} lvl | Price: ${price} | Balance ${balance.toFixed()}`,
+      this.client.name,
+    )
 
-      this.upgradeSleep = time() + sleepTime
-      log.warn(`Sleep ${sleepTime / 60} minutes`, this.client.name)
-    }
+    this.upgradeSleep = time() + sleepTime
+    log.warn(`Sleep ${sleepTime / 60} minutes`, this.client.name)
   }
 
   async start() {
@@ -267,10 +265,18 @@ export class Automator extends TGClient {
             continue
           }
 
-          if (!isDailyTurboReady && time() > this.upgradeSleep) {
-            const upgrades = await this.getAvailableUpgrades()
-            if (upgrades.length !== 0) await this.buyUpgrade(upgrades[0])
-          }
+          if (!isDailyTurboReady && time() > this.upgradeSleep)
+            while (true) {
+              const upgrades = await this.getAvailableUpgrades()
+              if (!upgrades.length) break
+              const [upgrade] = upgrades
+              if (this.state.balanceCoins < upgrade.price) {
+                await this.delayUpgrade(upgrade)
+                break
+              }
+              await this.buyUpgrade(upgrade)
+              await wait()
+            }
 
           if (tap_mode) {
             if (isDailyTurboReady) {
