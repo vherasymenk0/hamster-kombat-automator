@@ -221,7 +221,7 @@ export class Automator extends TGClient {
     const data = await Api.getProfileInfo(this.ax)
     this.updateState(data)
     const { earnPassivePerSec, balanceCoins } = data
-    const minPrice = Math.min(...totalCostAllUpgrades)
+    const minPrice = Math.max(...totalCostAllUpgrades)
 
     if (minPrice > balanceCoins) {
       const upgradeWaitTime = Math.ceil((minPrice - balanceCoins) / earnPassivePerSec)
