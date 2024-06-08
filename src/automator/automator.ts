@@ -195,6 +195,7 @@ export class Automator extends TGClient {
   private async buyUpgrade(upgrades: UpgradeItem[]) {
     let balance = this.state.balanceCoins
     let totalCostAllUpgrades = []
+    let atLeastOneBought = false
 
     // TODO: delete after Hamsters`s developer will fix bugs with duplicate upgrade items
     const uniqueUpgrades = [...new Map(upgrades.map((item) => [item.id, item])).values()]
@@ -203,6 +204,7 @@ export class Automator extends TGClient {
       if (balance >= price) {
         const res = await Api.buyUpgrade(this.ax, id)
         balance -= price
+        atLeastOneBought = true
 
         log.success(
           `Upgraded [${id}] to ${level} lvl | +${formatNum(profitPerHourDelta)} | EPH: ${formatNum(res.earnPassivePerHour)} | Balance: ${formatNum(balance)}`,
@@ -217,6 +219,8 @@ export class Automator extends TGClient {
         )
       }
     }
+
+    if (atLeastOneBought) return
 
     const data = await Api.getProfileInfo(this.ax)
     this.updateState(data)
