@@ -85,12 +85,12 @@ export class Automator extends TGClient {
 
   private async setProfileInfo() {
     const data = await Api.getProfileInfo(this.ax)
-    const { lastPassiveEarn, earnPassivePerHour } = data
+    const { lastPassiveEarn, earnPassivePerHour, balanceCoins } = data
     this.updateState(data)
 
     const lpe = lastPassiveEarn.toFixed()
     log.info(
-      `Last passive earn: ${formatNum(lpe)} | Earn every hour: ${formatNum(earnPassivePerHour)}`,
+      `Last passive earn: ${formatNum(lpe)} | EPH: ${formatNum(earnPassivePerHour)} | Balance: ${formatNum(balanceCoins)}`,
       this.client.name,
     )
   }
@@ -154,7 +154,7 @@ export class Automator extends TGClient {
     this.updateState(data)
 
     log.success(
-      `Successfully tapped! (+${tapsCount}) | Balance: ${formatNum(data.balanceCoins)} | Total per hour: ${formatNum(data.earnPassivePerHour)}`,
+      `Successfully tapped! (+${tapsCount}) | EPH: ${formatNum(data.earnPassivePerHour)} | Balance: ${formatNum(data.balanceCoins)}`,
       this.client.name,
     )
   }
@@ -208,7 +208,7 @@ export class Automator extends TGClient {
         balance -= price
 
         log.success(
-          `Upgraded [${id}] to ${level} lvl | +${formatNum(profitPerHourDelta)} | EP: ${formatNum(res.earnPassivePerHour)} | Balance: ${formatNum(balance)}`,
+          `Upgraded [${id}] to ${level} lvl | +${formatNum(profitPerHourDelta)} | EPH: ${formatNum(res.earnPassivePerHour)} | Balance: ${formatNum(balance)}`,
           this.client.name,
         )
         await wait()
