@@ -4,7 +4,7 @@ import { AutomatorState, ProfileModel, UpgradeItem } from './interfaces'
 import { AccountModel } from '~/interfaces'
 import { BOT_MASTER_AXIOS_CONFIG, DAILY_TASK_ID } from './constants'
 import { Api } from './api'
-import { time, wait } from '~/utils'
+import { msToTime, time, wait } from '~/utils'
 import { formatNum, getRandomRangeNumber } from '~/helpers'
 import { ONE_DAY_TIMESTAMP, ONE_HOUR_TIMESTAMP } from '~/constants'
 import { FloodWaitError } from 'telegram/errors'
@@ -100,7 +100,7 @@ export class Automator extends TGClient {
     const data = await Api.selectExchange(this.ax, exchange)
     this.updateState(data)
 
-    log.success(`Successfully selected ${exchange} exchange`, this.client.name)
+    log.success(`Selected ${exchange} exchange`, this.client.name)
   }
 
   private async completeDailyTask() {
@@ -115,7 +115,7 @@ export class Automator extends TGClient {
 
       if (reward)
         log.success(
-          `Successfully get daily reward | Days: ${days} | Reward coins: ${formatNum(reward)}`,
+          `Collect streak daily reward | Days: ${days} | Reward coins: ${formatNum(reward)}`,
           this.client.name,
         )
     }
@@ -123,7 +123,7 @@ export class Automator extends TGClient {
 
   private async applyDailyTurbo() {
     await Api.applyBoost(this.ax, 'BoostMaxTaps')
-    log.success('Turbo has been successfully applied', this.client.name)
+    log.info('Turbo has been applied', this.client.name)
     await wait()
     await this.sendTaps(turbo_taps_count)
   }
@@ -136,10 +136,7 @@ export class Automator extends TGClient {
       const data = await Api.applyBoost(this.ax, 'BoostFullAvailableTaps')
       this.updateState(data)
 
-      log.success(
-        `Energy has been successfully restored | Energy: ${data.availableTaps}`,
-        this.client.name,
-      )
+      log.info(`Energy has been restored | Energy: ${data.availableTaps}`, this.client.name)
     } else {
       this.energyBoostTimeout = time() + ONE_DAY_TIMESTAMP
       log.warn('The limit of free energy restorers for today has been reached!', this.client.name)
@@ -154,7 +151,7 @@ export class Automator extends TGClient {
     this.updateState(data)
 
     log.success(
-      `Successfully tapped! (+${tapsCount}) | EPH: ${formatNum(data.earnPassivePerHour)} | Balance: ${formatNum(data.balanceCoins)}`,
+      `Tapped +${tapsCount} | EPH: ${formatNum(data.earnPassivePerHour)} | Balance: ${formatNum(data.balanceCoins)}`,
       this.client.name,
     )
   }
@@ -197,7 +194,7 @@ export class Automator extends TGClient {
 
   private async buyUpgrade(upgrades: UpgradeItem[]) {
     let balance = this.state.balanceCoins
-    let totalCostAllUpgrades = 0
+    let totalCostAllUpgrades = []
 
     // TODO: delete after Hamsters`s developer will fix bugs with duplicate upgrade items
     const uniqueUpgrades = [...new Map(upgrades.map((item) => [item.id, item])).values()]
@@ -213,7 +210,7 @@ export class Automator extends TGClient {
         )
         await wait()
       } else {
-        totalCostAllUpgrades += price
+        totalCostAllUpgrades.push(price)
         log.warn(
           `Insufficient balance to upgrade [${id}] to ${level} lvl | Price: ${formatNum(price)} | Balance ${formatNum(balance)}`,
           this.client.name,
@@ -224,14 +221,15 @@ export class Automator extends TGClient {
     const data = await Api.getProfileInfo(this.ax)
     this.updateState(data)
     const { earnPassivePerSec, balanceCoins } = data
+    const minPrice = Math.min(...totalCostAllUpgrades)
 
-    if (totalCostAllUpgrades > balanceCoins) {
-      const upgradeWaitTime = Math.ceil((totalCostAllUpgrades - balanceCoins) / earnPassivePerSec)
+    if (minPrice > balanceCoins) {
+      const upgradeWaitTime = Math.ceil((minPrice - balanceCoins) / earnPassivePerSec)
 
-      const text = 'Approximate time for rebalancing: '
-      if (upgradeWaitTime > 120)
-        log.warn(text + `${Math.ceil(upgradeWaitTime / 60)} minutes`, this.client.name)
-      else log.warn(text + `${upgradeWaitTime}s`, this.client.name)
+      log.warn(
+        `Approximate time for rebalancing: ${msToTime(upgradeWaitTime * 1000).formattedTime}`,
+        this.client.name,
+      )
 
       this.upgradeSleep = time() + upgradeWaitTime
     }
@@ -289,7 +287,7 @@ export class Automator extends TGClient {
           if (!isDailyTurboReady && time() > this.upgradeSleep) {
             const upgrades = await this.getAvailableUpgrades()
 
-            if (upgrades.length !== 0) await this.buyUpgrade(upgrades.slice(0, 3))
+            if (upgrades.length !== 0) await this.buyUpgrade(upgrades.slice(0, 4))
           }
 
           if (tap_mode) {
