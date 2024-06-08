@@ -5,7 +5,7 @@ import { AccountModel } from '~/interfaces'
 import { BOT_MASTER_AXIOS_CONFIG, DAILY_TASK_ID } from './constants'
 import { Api } from './api'
 import { time, wait } from '~/utils'
-import { getRandomRangeNumber } from '~/helpers'
+import { formatNum, getRandomRangeNumber } from '~/helpers'
 import { ONE_DAY_TIMESTAMP, ONE_HOUR_TIMESTAMP } from '~/constants'
 import { FloodWaitError } from 'telegram/errors'
 import { AxiosRequestConfig } from 'axios'
@@ -89,7 +89,10 @@ export class Automator extends TGClient {
     this.updateState(data)
 
     const lpe = lastPassiveEarn.toFixed()
-    log.info(`Last passive earn: ${lpe} | Earn every hour: ${earnPassivePerHour}`, this.client.name)
+    log.info(
+      `Last passive earn: ${formatNum(lpe)} | Earn every hour: ${formatNum(earnPassivePerHour)}`,
+      this.client.name,
+    )
   }
 
   private async selectExchange() {
@@ -110,10 +113,11 @@ export class Automator extends TGClient {
       this.state.lastCompletedDaily = Math.floor(Date.parse(completedAt) / 1000)
       const reward = rewardsByDays?.[days - 1].rewardCoins
 
-      log.success(
-        `Successfully get daily reward | Days: ${days} | Reward coins: ${reward}`,
-        this.client.name,
-      )
+      if (reward)
+        log.success(
+          `Successfully get daily reward | Days: ${days} | Reward coins: ${formatNum(reward)}`,
+          this.client.name,
+        )
     }
   }
 
@@ -150,7 +154,7 @@ export class Automator extends TGClient {
     this.updateState(data)
 
     log.success(
-      `Successfully tapped! (+${tapsCount}) | Balance: ${data.balanceCoins.toFixed()}`,
+      `Successfully tapped! (+${tapsCount}) | Balance: ${formatNum(data.balanceCoins)} | Total per hour: ${formatNum(data.earnPassivePerHour)}`,
       this.client.name,
     )
   }
@@ -191,30 +195,45 @@ export class Automator extends TGClient {
     return availableUpgrades
   }
 
-  private async buyUpgrade({ price, id, level, profitPerHourDelta }: UpgradeItem) {
-    const { balanceCoins } = this.state
+  private async buyUpgrade(upgrades: UpgradeItem[]) {
+    let balance = this.state.balanceCoins
+    let totalCostAllUpgrades = 0
 
-    if (balanceCoins >= price) {
-      const res = await Api.buyUpgrade(this.ax, id)
-      this.updateState(res)
+    // TODO: delete after Hamsters`s developer will fix bugs with duplicate upgrade items
+    const uniqueUpgrades = [...new Map(upgrades.map((item) => [item.id, item])).values()]
 
-      log.success(
-        `Upgraded [${id}] to ${level} lvl | +${profitPerHourDelta} | Total per hour ${res.earnPassivePerHour}`,
-        this.client.name,
-      )
-    } else {
-      const data = await Api.getProfileInfo(this.ax)
-      const { balanceCoins: balance } = data
+    for (const { price, id, level, profitPerHourDelta } of uniqueUpgrades) {
+      if (balance >= price) {
+        const res = await Api.buyUpgrade(this.ax, id)
+        balance -= price
 
-      this.updateState(data)
-      const sleepTime = 600
-      log.warn(
-        `Insufficient balance to improve [${id}] to ${level} lvl | Price: ${price} | Balance ${balance.toFixed()}`,
-        this.client.name,
-      )
+        log.success(
+          `Upgraded [${id}] to ${level} lvl | +${formatNum(profitPerHourDelta)} | EP: ${formatNum(res.earnPassivePerHour)} | Balance: ${formatNum(balance)}`,
+          this.client.name,
+        )
+        await wait()
+      } else {
+        totalCostAllUpgrades += price
+        log.warn(
+          `Insufficient balance to upgrade [${id}] to ${level} lvl | Price: ${formatNum(price)} | Balance ${formatNum(balance)}`,
+          this.client.name,
+        )
+      }
+    }
 
-      this.upgradeSleep = time() + sleepTime
-      log.warn(`Sleep ${sleepTime / 60} minutes`, this.client.name)
+    const data = await Api.getProfileInfo(this.ax)
+    this.updateState(data)
+    const { earnPassivePerSec, balanceCoins } = data
+
+    if (totalCostAllUpgrades > balanceCoins) {
+      const upgradeWaitTime = Math.ceil((totalCostAllUpgrades - balanceCoins) / earnPassivePerSec)
+
+      const text = 'Approximate time for rebalancing: '
+      if (upgradeWaitTime > 120)
+        log.warn(text + `${Math.ceil(upgradeWaitTime / 60)} minutes`, this.client.name)
+      else log.warn(text + `${upgradeWaitTime}s`, this.client.name)
+
+      this.upgradeSleep = time() + upgradeWaitTime
     }
   }
 
@@ -269,7 +288,8 @@ export class Automator extends TGClient {
 
           if (!isDailyTurboReady && time() > this.upgradeSleep) {
             const upgrades = await this.getAvailableUpgrades()
-            if (upgrades.length !== 0) await this.buyUpgrade(upgrades[0])
+
+            if (upgrades.length !== 0) await this.buyUpgrade(upgrades.slice(0, 3))
           }
 
           if (tap_mode) {

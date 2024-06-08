@@ -21,7 +21,9 @@ const launcher = async () => {
 try {
   DB.init()
   log.info(AUTHOR)
-  launcher()
+
+  if (process.argv[2] === '--automator') runAutomator()
+  else launcher()
 } catch (e) {
   log.error(String(e))
 }
