@@ -291,7 +291,7 @@ export class Automator extends TGClient {
           if (!isDailyTurboReady && time() > this.upgradeSleep) {
             const upgrades = await this.getAvailableUpgrades()
 
-            if (upgrades.length !== 0) await this.buyUpgrade(upgrades.slice(0, 4))
+            if (upgrades.length !== 0) await this.buyUpgrade(upgrades)
           }
 
           if (tap_mode) {
