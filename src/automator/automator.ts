@@ -291,7 +291,9 @@ export class Automator extends TGClient {
   }
 
   private async buyUpgrade(upgrades: UpgradeItem[]) {
-    let balance = this.state.balanceCoins
+    const info = await Api.getProfileInfo(this.ax)
+    this.updateState(info)
+    let balance = info.balanceCoins
     let totalCostAllUpgrades = []
     let atLeastOneBought = false
 
