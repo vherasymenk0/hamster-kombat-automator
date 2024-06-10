@@ -1,6 +1,7 @@
 import { Axios } from '~/services'
 import {
   BoostsModel,
+  ComboModel,
   CompletedTaskModel,
   DailyCipherModel,
   LoginResponseModel,
@@ -122,6 +123,28 @@ class ApiService {
       return clickerUser
     } catch (e) {
       throw new Error(`Api | buyUpgrade(${upgradeId}) | ${e}`)
+    }
+  }
+
+  async claimCombo(axios: Axios) {
+    try {
+      await axios.post<ComboModel>(API_MAP.claimCombo, {
+        data: {},
+      })
+      return true
+    } catch (e) {
+      throw new Error(`Api | claimCombo() | ${e}`)
+    }
+  }
+
+  async getConfig(axios: Axios) {
+    try {
+      const data = await axios.post<DailyCipherModel>(API_MAP.config, {
+        data: {},
+      })
+      return data
+    } catch (e) {
+      throw new Error(`Api | getConfig() | ${e}`)
     }
   }
 

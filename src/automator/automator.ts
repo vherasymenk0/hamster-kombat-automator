@@ -9,6 +9,7 @@ import { formatNum, getRandomRangeNumber } from '~/helpers'
 import { ONE_DAY_TIMESTAMP, ONE_HOUR_TIMESTAMP } from '~/constants'
 import { FloodWaitError } from 'telegram/errors'
 import { AxiosRequestConfig } from 'axios'
+import { getDailyCombo } from '~/automator/utils'
 
 const {
   taps_count_range,
@@ -17,7 +18,6 @@ const {
   sleep_between_taps,
   max_upgrade_lvl,
   tap_mode,
-  cipher,
 } = config.settings
 
 export class Automator extends TGClient {
@@ -25,6 +25,7 @@ export class Automator extends TGClient {
   private upgradeSleep = 0
   private energyBoostTimeout = 0
   private cipherAvailableAt = 0
+  private comboAvailableAt = 0
   private state: AutomatorState = {
     availableTaps: 0,
     totalCoins: 0,
@@ -159,33 +160,97 @@ export class Automator extends TGClient {
   }
 
   private async claimCipher() {
-    if (!cipher) {
-      log.warn('Add cipher to CIPHER var in env', this.client.name)
-      return
-    }
-
     try {
-      const { dailyCipher, clickerUser } = await Api.claimDailyCipher(this.ax, cipher)
-      this.updateState(clickerUser)
-      const { remainSeconds, isClaimed, bonusCoins } = dailyCipher
-
-      if (isClaimed) {
-        log.warn(`Cipher ${cipher} already claimed!`, this.client.name)
-        return
-      }
+      const { dailyCipher } = await Api.getConfig(this.ax)
+      const { remainSeconds, isClaimed, bonusCoins, cipher = '' } = dailyCipher
+      const decodedCipher = atob(`${cipher.slice(0, 3)}${cipher.slice(4)}`)
+      this.cipherAvailableAt = time() + 5 * 60 * 60
 
       if (remainSeconds === 0) {
-        log.warn(`Cipher ${cipher} is expired!`, this.client.name)
+        log.warn(`Cipher [${decodedCipher}] is expired!`, this.client.name)
         return
       }
 
-      this.cipherAvailableAt = time() + 14 * 60 * 60
+      if (isClaimed) {
+        log.warn(`Cipher [${decodedCipher}] already claimed!`, this.client.name)
+        return
+      }
+
+      const { clickerUser } = await Api.claimDailyCipher(this.ax, decodedCipher)
+      this.updateState(clickerUser)
+
       log.success(
-        `Successfully claimed ${cipher} cipher! +${formatNum(bonusCoins)}`,
+        `Successfully claimed [${decodedCipher}] cipher! +${formatNum(bonusCoins)}`,
         this.client.name,
       )
     } catch (e) {
       log.warn(String(e), this.client.name)
+    }
+  }
+
+  async claimCombo() {
+    try {
+      await Api.claimCombo(this.ax)
+      log.success(`Successfully claimed daily combo!`, this.client.name)
+    } catch (e) {
+      log.warn(`Daily combo claim is unavailable: ${e}`, this.client.name)
+    }
+  }
+
+  async claimDailyCombo() {
+    const { combo, date } = await getDailyCombo()
+    let balance = this.state.balanceCoins
+    const dayOfDate = Number(date.slice(0, 2))
+    const currentDay = new Date().getDate()
+    this.comboAvailableAt = time() + 3 * 60 * 60
+
+    if (dayOfDate !== currentDay) {
+      log.warn('There is no new combo yet today', this.client.name)
+      return
+    }
+
+    log.info(`Available combo cards [${combo.join(', ')}] for ${date}`, this.client.name)
+
+    const upgrades = await this.getAvailableUpgrades()
+    const comboCards = upgrades.filter(({ id }) => combo.includes(id))
+
+    if (comboCards.length !== 3) {
+      const unavailableCards = combo.filter((id) => !comboCards.some((item) => item.id === id))
+
+      log.warn(
+        `Cant claim daily combo because of you have unavailable cards for this combo: [${unavailableCards.join(', ')}]`,
+        this.client.name,
+      )
+      return
+    }
+
+    log.info('Trying buy combo cars...', this.client.name)
+    const unboughtCards: string[] = []
+
+    for (const { id, price, level } of comboCards) {
+      if (balance >= price) {
+        await Api.buyUpgrade(this.ax, id)
+        balance -= price
+        await wait()
+      } else {
+        log.warn(
+          `Insufficient balance to upgrade [${id}] to ${level} lvl | Price: ${formatNum(price)} | Balance ${formatNum(balance)}`,
+          this.client.name,
+        )
+        unboughtCards.push(id)
+      }
+    }
+
+    const data = await Api.getProfileInfo(this.ax)
+    this.updateState(data)
+
+    if (unboughtCards.length === 3) {
+      await this.claimCombo()
+    } else {
+      log.warn(
+        `Daily combo claim is unavailable, unpurchased cards from combo: [${unboughtCards.join(', ')}]`,
+        this.client.name,
+      )
     }
   }
 
@@ -327,10 +392,18 @@ export class Automator extends TGClient {
             continue
           }
 
+          if (time() > this.comboAvailableAt) {
+            await this.claimDailyCombo()
+            continue
+          }
+
           if (!isDailyTurboReady && time() > this.upgradeSleep) {
             const upgrades = await this.getAvailableUpgrades()
 
-            if (upgrades.length !== 0) await this.buyUpgrade(upgrades)
+            if (upgrades.length !== 0) {
+              await this.buyUpgrade(upgrades)
+              await this.claimCombo()
+            }
             continue
           }
 

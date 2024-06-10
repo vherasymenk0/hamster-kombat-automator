@@ -140,3 +140,8 @@ export interface DailyCipherModel {
   clickerUser: ClickerUser
   dailyCipher: Cipher
 }
+
+export interface ComboModel {
+  combo: string[]
+  date: string
+}

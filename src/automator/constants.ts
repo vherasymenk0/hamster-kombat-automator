@@ -28,5 +28,7 @@ export const API_MAP = {
   buyUpgrade: '/clicker/buy-upgrade',
   boostForBuy: '/clicker/boosts-for-buy',
   cipher: '/clicker/claim-daily-cipher',
+  claimCombo: '/clicker/claim-daily-combo',
   tap: '/clicker/tap',
+  config: '/clicker/config',
 } as const
