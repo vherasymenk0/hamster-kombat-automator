@@ -4,6 +4,7 @@ const settings = {
   api_id: Number(getEnvVar('API_ID')),
   api_hash: getEnvVar('API_HASH'),
   tap_mode: stringToBoolean(getEnvVar('TAP_MODE', 'true')),
+  buy_mode: stringToBoolean(getEnvVar('BUY_MODE', 'true')),
   min_energy: 100,
   turbo_taps_count: 2500,
   max_upgrade_lvl: 20,

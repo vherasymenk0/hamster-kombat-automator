@@ -18,6 +18,7 @@ const {
   sleep_between_taps,
   max_upgrade_lvl,
   tap_mode,
+  buy_mode,
 } = config.settings
 
 export class Automator extends TGClient {
@@ -399,14 +400,16 @@ export class Automator extends TGClient {
             continue
           }
 
-          if (!isDailyTurboReady && time() > this.upgradeSleep) {
-            const upgrades = await this.getAvailableUpgrades()
+          if (buy_mode) {
+            if (!isDailyTurboReady && time() > this.upgradeSleep) {
+              const upgrades = await this.getAvailableUpgrades()
 
-            if (upgrades.length !== 0) {
-              await this.buyUpgrade(upgrades)
-              await this.claimCombo()
+              if (upgrades.length !== 0) {
+                await this.buyUpgrade(upgrades)
+                await this.claimCombo()
+              }
+              continue
             }
-            continue
           }
 
           if (tap_mode) {
