@@ -66,6 +66,13 @@ interface Boosts {
   }
 }
 
+interface Cipher {
+  cipher: string
+  bonusCoins: number
+  isClaimed: boolean
+  remainSeconds: number
+}
+
 type CompletedTaskType = Omit<Task, 'id' | 'days' | 'completedAt'> & {
   id: string
   days: number
@@ -77,27 +84,29 @@ export interface LoginResponseModel {
   status: string
 }
 
+interface ClickerUser {
+  id: string
+  totalCoins: number
+  balanceCoins: number
+  level: number
+  availableTaps: number
+  lastSyncUpdate: number
+  exchangeId: string
+  boosts: Boosts
+  upgrades: Record<string, UpgradedItem>
+  tasks: Record<string, CompletedTaskType>
+  referralsCount: number
+  maxTaps: number
+  earnPerTap: number
+  earnPassivePerSec: number
+  earnPassivePerHour: number
+  lastPassiveEarn: number
+  tapsRecoverPerSec: number
+  referral: Record<string, unknown>
+}
+
 export interface ProfileModel {
-  clickerUser: {
-    id: string
-    totalCoins: number
-    balanceCoins: number
-    level: number
-    availableTaps: number
-    lastSyncUpdate: number
-    exchangeId: string
-    boosts: Boosts
-    upgrades: Record<string, UpgradedItem>
-    tasks: Record<string, CompletedTaskType>
-    referralsCount: number
-    maxTaps: number
-    earnPerTap: number
-    earnPassivePerSec: number
-    earnPassivePerHour: number
-    lastPassiveEarn: number
-    tapsRecoverPerSec: number
-    referral: Record<string, unknown>
-  }
+  clickerUser: ClickerUser
 }
 
 export interface TasksListModel {
@@ -125,4 +134,9 @@ export interface BoostsModel {
     maxTapsDelta: number
     earnPerTapDelta: number
   }[]
+}
+
+export interface DailyCipherModel {
+  clickerUser: ClickerUser
+  dailyCipher: Cipher
 }

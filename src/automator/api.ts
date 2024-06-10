@@ -2,6 +2,7 @@ import { Axios } from '~/services'
 import {
   BoostsModel,
   CompletedTaskModel,
+  DailyCipherModel,
   LoginResponseModel,
   ProfileModel,
   TasksListModel,
@@ -121,6 +122,18 @@ class ApiService {
       return clickerUser
     } catch (e) {
       throw new Error(`Api | buyUpgrade(${upgradeId}) | ${e}`)
+    }
+  }
+
+  async claimDailyCipher(axios: Axios, cipher: string) {
+    try {
+      const dto = { cipher: cipher.toUpperCase() }
+      const data = await axios.post<DailyCipherModel>(API_MAP.cipher, {
+        data: dto,
+      })
+      return data
+    } catch (e) {
+      throw new Error(`Api | claimDailyCipher(${cipher}) | ${e}`)
     }
   }
 }

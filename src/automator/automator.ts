@@ -17,12 +17,14 @@ const {
   sleep_between_taps,
   max_upgrade_lvl,
   tap_mode,
+  cipher,
 } = config.settings
 
 export class Automator extends TGClient {
   private tokenCreatedTime = 0
   private upgradeSleep = 0
   private energyBoostTimeout = 0
+  private cipherAvailableAt = 0
   private state: AutomatorState = {
     availableTaps: 0,
     totalCoins: 0,
@@ -156,6 +158,37 @@ export class Automator extends TGClient {
     )
   }
 
+  private async claimCipher() {
+    if (!cipher) {
+      log.warn('Add cipher to CIPHER var in env', this.client.name)
+      return
+    }
+
+    try {
+      const { dailyCipher, clickerUser } = await Api.claimDailyCipher(this.ax, cipher)
+      this.updateState(clickerUser)
+      const { remainSeconds, isClaimed, bonusCoins } = dailyCipher
+
+      if (isClaimed) {
+        log.warn(`Cipher ${cipher} already claimed!`, this.client.name)
+        return
+      }
+
+      if (remainSeconds === 0) {
+        log.warn(`Cipher ${cipher} is expired!`, this.client.name)
+        return
+      }
+
+      this.cipherAvailableAt = time() + 14 * 60 * 60
+      log.success(
+        `Successfully claimed ${cipher} cipher! +${formatNum(bonusCoins)}`,
+        this.client.name,
+      )
+    } catch (e) {
+      log.warn(String(e), this.client.name)
+    }
+  }
+
   private async getAvailableUpgrades() {
     const data = await Api.getUpgrades(this.ax)
 
@@ -225,10 +258,10 @@ export class Automator extends TGClient {
     const data = await Api.getProfileInfo(this.ax)
     this.updateState(data)
     const { earnPassivePerSec, balanceCoins } = data
-    const minPrice = Math.max(...totalCostAllUpgrades)
+    const maxPrice = Math.max(...totalCostAllUpgrades)
 
-    if (minPrice > balanceCoins) {
-      const upgradeWaitTime = Math.ceil((minPrice - balanceCoins) / earnPassivePerSec)
+    if (maxPrice > balanceCoins) {
+      const upgradeWaitTime = Math.ceil((maxPrice - balanceCoins) / earnPassivePerSec)
 
       log.warn(
         `Approximate time for rebalancing: ${msToTime(upgradeWaitTime * 1000).formattedTime}`,
@@ -282,6 +315,12 @@ export class Automator extends TGClient {
             continue
           }
 
+          if (time() > this.cipherAvailableAt) {
+            await this.claimCipher()
+            await wait()
+            continue
+          }
+
           if (isDailyTaskAvailable) {
             await this.completeDailyTask()
             await wait()
@@ -292,6 +331,7 @@ export class Automator extends TGClient {
             const upgrades = await this.getAvailableUpgrades()
 
             if (upgrades.length !== 0) await this.buyUpgrade(upgrades)
+            continue
           }
 
           if (tap_mode) {
