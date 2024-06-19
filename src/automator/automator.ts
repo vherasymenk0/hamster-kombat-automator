@@ -9,7 +9,6 @@ import { formatNum, getRandomRangeNumber } from '~/helpers'
 import { ONE_DAY_TIMESTAMP, ONE_HOUR_TIMESTAMP } from '~/constants'
 import { FloodWaitError } from 'telegram/errors'
 import { AxiosRequestConfig } from 'axios'
-import { getDailyCombo } from '~/automator/utils'
 
 const {
   taps_count_range,
@@ -199,66 +198,56 @@ export class Automator extends TGClient {
   }
 
   async claimDailyCombo() {
-    const { combo, date } = await getDailyCombo()
-    let balance = this.state.balanceCoins
+    const { combo, date } = await Api.getDailyCombo()
+    await wait()
+    const { dailyCombo } = await Api.getUpgrades(this.ax)
+
     const dayOfDate = Number(date.slice(0, 2))
     const currentDay = new Date().getDate()
-    this.comboAvailableAt = time() + 3 * 60 * 60
+    this.comboAvailableAt = time() + 2 * 60 * 60
+
+    const alreadyBought: string[] = []
+    const unbought: string[] = []
+
+    for (let comboID of combo) {
+      if (dailyCombo.upgradeIds.find((id) => id === comboID)) alreadyBought.push(comboID)
+      else unbought.push(comboID)
+    }
+
+    log.info(`Current combo ${combo.join(', ')}`, this.client.name)
+    if (alreadyBought.length > 0)
+      log.info(`Already bought form combo ${alreadyBought.join(', ')}`, this.client.name)
 
     if (dayOfDate !== currentDay) {
       log.warn('There is no new combo yet today', this.client.name)
       return
     }
 
-    log.info(`Available combo cards [${combo.join(', ')}] for ${date}`, this.client.name)
-
-    const upgrades = await this.getAvailableUpgrades()
-    const comboCards = upgrades.filter(({ id }) => combo.includes(id))
-
-    if (comboCards.length !== 3) {
-      const unavailableCards = combo.filter((id) => !comboCards.some((item) => item.id === id))
-
-      log.warn(
-        `Cant claim daily combo because of you have unavailable cards for this combo: [${unavailableCards.join(', ')}]`,
-        this.client.name,
-      )
-      return
-    }
-
-    log.info('Trying buy combo cars...', this.client.name)
-    const unboughtCards: string[] = []
-
-    for (const { id, price, level } of comboCards) {
-      if (balance >= price) {
-        await Api.buyUpgrade(this.ax, id)
-        balance -= price
-        await wait()
-      } else {
-        log.warn(
-          `Insufficient balance to upgrade [${id}] to ${level} lvl | Price: ${formatNum(price)} | Balance ${formatNum(balance)}`,
-          this.client.name,
-        )
-        unboughtCards.push(id)
+    for (let comboID of unbought) {
+      try {
+        const boughtComboID = dailyCombo.upgradeIds.findIndex((id) => id === comboID)
+        if (boughtComboID === -1) {
+          await Api.buyUpgrade(this.ax, comboID)
+          await wait()
+        }
+      } catch (e) {
+        log.warn(String(e), this.client.name)
       }
     }
 
+    const {
+      dailyCombo: { upgradeIds },
+    } = await Api.getUpgrades(this.ax)
+    if (upgradeIds.length === 3) await this.claimCombo()
+
     const data = await Api.getProfileInfo(this.ax)
     this.updateState(data)
-
-    if (unboughtCards.length === 3) {
-      await this.claimCombo()
-    } else {
-      log.warn(
-        `Daily combo claim is unavailable, unpurchased cards from combo: [${unboughtCards.join(', ')}]`,
-        this.client.name,
-      )
-    }
   }
 
   private async getAvailableUpgrades() {
-    const data = await Api.getUpgrades(this.ax)
+    const { upgradesForBuy } = await Api.getUpgrades(this.ax)
 
-    const channelsToSubscribe = data.filter(
+    const channelsToSubscribe = upgradesForBuy.filter(
       ({ isAvailable, isExpired, condition }) =>
         !isAvailable && !isExpired && condition && condition._type === 'SubscribeTelegramChannel',
     )
@@ -270,7 +259,7 @@ export class Automator extends TGClient {
       }),
     )
 
-    const availableUpgrades = data
+    const availableUpgrades = upgradesForBuy
       .filter(
         ({ isAvailable: isUnlock, isExpired, level, maxLevel = 999, cooldownSeconds = 0 }) => {
           const isAvailable = isUnlock && !isExpired
@@ -405,8 +394,8 @@ export class Automator extends TGClient {
               const upgrades = await this.getAvailableUpgrades()
 
               if (upgrades.length !== 0) {
-                await this.buyUpgrade(upgrades)
                 await this.claimCombo()
+                await this.buyUpgrade(upgrades)
               }
               continue
             }

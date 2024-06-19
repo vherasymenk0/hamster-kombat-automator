@@ -100,8 +100,8 @@ class ApiService {
 
   async getUpgrades(axios: Axios) {
     try {
-      const { upgradesForBuy } = await axios.post<UpgradesModel>(API_MAP.upgrades)
-      return upgradesForBuy
+      const data = await axios.post<UpgradesModel>(API_MAP.upgrades)
+      return data
     } catch (e) {
       throw new Error(`Api | getUpgrades() | ${e}`)
     }
@@ -145,6 +145,18 @@ class ApiService {
       return data
     } catch (e) {
       throw new Error(`Api | getConfig() | ${e}`)
+    }
+  }
+
+  async getDailyCombo() {
+    try {
+      const axios = new Axios()
+      const data = await axios.get<ComboModel>('/api/GetCombo', {
+        baseURL: 'https://hamster-kombo-server.vercel.app',
+      })
+      return data
+    } catch (e) {
+      throw new Error(`Api | getDailyCombo() | ${e}`)
     }
   }
 

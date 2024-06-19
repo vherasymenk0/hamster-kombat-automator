@@ -105,8 +105,16 @@ interface ClickerUser {
   referral: Record<string, unknown>
 }
 
+interface ComboInfoModel {
+  upgradeIds: string[]
+  bonusCoins: number
+  isClaimed: boolean
+  remainSeconds: number
+}
+
 export interface ProfileModel {
   clickerUser: ClickerUser
+  dailyCombo: ComboInfoModel
 }
 
 export interface TasksListModel {
@@ -120,6 +128,7 @@ export interface CompletedTaskModel extends ProfileModel {
 export interface UpgradesModel {
   upgradesForBuy: UpgradeItem[]
   sections: UpgradeSection[]
+  dailyCombo: ComboInfoModel
 }
 
 export interface BoostsModel {
