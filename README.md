@@ -31,6 +31,15 @@
 |--------------------------|-----------------------------------------------------------------------------------------|
 | 🔑 **API_ID / API_HASH** | Telegram client app credentials ([FYI](https://core.telegram.org/api/obtaining_api_id)) |
 | 🖱️ **TAP_MODE**         | OFF/ON auto clicker (**true / false**) - default **true**                               |
+| 💰 **BUY_MODE**         | OFF/ON automatic buyer (**true / false**) - default **true**                               |
+| 🔋 **MIN_ENERGY**            | Minimum energy level before triggering actions - default: **100**                         |
+| ⚡ **TURBO_TAPS_COUNT**      | Number of taps in turbo mode - default: **2500**                                          |
+| ⬆️ **MAX_UPGRADE_LVL**      | Maximum upgrade level for upgrades - default: **20**                                       |
+| 🔄 **TAPS_COUNT_RANGE_MIN**  | Minimum number of taps in a range - default: **50**                                        |
+| 🔄 **TAPS_COUNT_RANGE_MAX**  | Maximum number of taps in a range - default: **199**                                       |
+| 💤 **SLEEP_BETWEEN_TAPS_MIN**| Minimum sleep time between taps in milliseconds - default: **10**                          |
+| 💤 **SLEEP_BETWEEN_TAPS_MAX**| Maximum sleep time between taps in milliseconds - default: **15**                          |
+
 ---
 ### 📥 Installation
 
