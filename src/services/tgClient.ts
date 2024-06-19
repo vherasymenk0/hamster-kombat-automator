@@ -2,7 +2,7 @@ import { config } from '~/config'
 import { StringSession } from 'telegram/sessions'
 import { Api, TelegramClient } from 'telegram'
 import { wait, time, buildTgClientParams } from '~/utils'
-import { ONE_DAY_TIMESTAMP } from '~/constants'
+import {  THREE_DAYS_TIMESTAMP } from '~/constants'
 import { AccountModel } from '~/interfaces'
 import { DB } from './db'
 import { log } from './logger'
@@ -37,10 +37,10 @@ export class TGClient {
 
     if (webData) {
       const cacheAge = time() - webData.lastUpdateAt
-      const isExpired = cacheAge < ONE_DAY_TIMESTAMP
+      const isExpired = cacheAge < THREE_DAYS_TIMESTAMP
 
       if (isExpired) {
-        const timeUntilRevalidation = ONE_DAY_TIMESTAMP - cacheAge
+        const timeUntilRevalidation = THREE_DAYS_TIMESTAMP - cacheAge
         const [h, m, s] = [
           Math.floor(timeUntilRevalidation / 3600),
           Math.floor((timeUntilRevalidation % 3600) / 60),
