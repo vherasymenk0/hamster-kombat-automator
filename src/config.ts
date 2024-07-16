@@ -16,7 +16,7 @@ export const config = {
   settings,
   info: {
     origin: 'https://hamsterkombat.io',
-    api: 'api.hamsterkombat.io',
+    api: 'api.hamsterkombatgame.io',
     name: 'Hamster Kombat',
     userName: 'hamster_kombat_bot',
   },
